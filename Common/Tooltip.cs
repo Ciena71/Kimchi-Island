@@ -61,7 +61,7 @@ public class Tooltip : MonoBehaviour
         objDescription.SetActive(true);
         for (int i = 0; i < textTagTitle.Length; ++i)
             objTag[i].SetActive(false);
-        rectTooltip.sizeDelta = new Vector2(300, 400);
+        rectTooltip.sizeDelta = new Vector2(350, 400);
         gameObject.SetActive(true);
     }
 
