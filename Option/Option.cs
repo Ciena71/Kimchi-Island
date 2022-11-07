@@ -22,6 +22,12 @@ public class Option : MonoBehaviour
     public Text textVersion;
     public Button btnUpdate;
     public Text textUpdate;
+    public Button btnPatchNote;
+    public Text textPatchNote;
+    public GameObject objPatchNote;
+    public Text textPatchNoteTop;
+    public Button btnPatchNoteClose;
+    public Text textPatchNoteText;
     public Button btnManual;
     public Text textManual;
     public Text textKimchiMaker;
@@ -136,6 +142,12 @@ public class Option : MonoBehaviour
         textVersion.text = Application.version;
         ResourceManager resourceManager = ResourceManager.instance;
         btnUpdate.onClick.AddListener(() => resourceManager.UpdateVersion());
+        btnPatchNote.onClick.AddListener(() =>
+        {
+            textPatchNoteText.text = resourceManager.GetPatchNote();
+            objPatchNote.SetActive(true);
+        });
+        btnPatchNoteClose.onClick.AddListener(() => objPatchNote.SetActive(false));
         btnManual.onClick.AddListener(() => Application.OpenURL(resourceManager.GetURL(2)));
         btnKimchiMakerWindowsDownload.onClick.AddListener(() => Application.OpenURL(resourceManager.GetURL(3)));
         btnKimchiMakerAndroidDownload.onClick.AddListener(() => Application.OpenURL(resourceManager.GetURL(4)));
@@ -175,6 +187,8 @@ public class Option : MonoBehaviour
         textAlarmVolume.text = resourceManager.GetText(24);
         textAlarm.text = resourceManager.GetText(24);
         textUpdate.text = resourceManager.GetText(39);
+        textPatchNote.text = resourceManager.GetText(49);
+        textPatchNoteTop.text = resourceManager.GetText(49);
         textManual.text = resourceManager.GetText(42);
         textKimchiMaker.text = resourceManager.GetText(43);
         textKimchiMakerWindowsDownload.text = resourceManager.GetText(44);
