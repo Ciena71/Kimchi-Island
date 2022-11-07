@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEngine;
@@ -406,6 +406,17 @@ public class ResourceManager
     public void UpdateVersion()
     {
         SystemCore.instance.StartCoroutine(RequestUpdateVersion());
+    }
+
+    public string GetPatchNote()
+    {
+        string textData = "";
+        UserManager userManager = UserManager.instance;
+        for (int i = updateVersionData.Count - 1; i >= 0; --i)
+        {
+            textData += $"Version {updateVersionData[i]["Version"]}\n{updateVersionData[i][$"PatchNote {(userManager.GetLanguage() == SystemLanguage.Korean ? "Korean" : "English")}"]}\n\n";
+        }
+        return textData;
     }
 
     public List<Dictionary<string, object>> GetSupplyPattern() => supplyPattern;
