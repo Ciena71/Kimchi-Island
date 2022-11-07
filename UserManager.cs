@@ -202,8 +202,8 @@ public class UserManager
 
     public void UpdateWeek()
     {
-        long week = DateTime.UtcNow.AddDays(-1).AddHours(-9).Ticks / 6048000000000;
-        if (userData.dataWeek > week)
+        long week = DateTime.UtcNow.AddDays(-1).AddHours(-9).Ticks / 6048000000000 - 105483;
+        if (userData.dataWeek < week)
         {
             userData.salesData = new SalesData[7];
             userData.dataWeek = week;
