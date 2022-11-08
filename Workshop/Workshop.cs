@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -539,7 +539,18 @@ public class Workshop : MonoBehaviour
                     value = 2;
                 else if ((data[35 + i] & (1 << 4)) == (1 << 4))
                     value = 1;
-                copySupplyPacket += $"{value}\t{3 - productList[i].GetDemandShift()}";
+                int demandShift = 0;
+                if ((data[35 + i] & (1 << 2)) == (1 << 2))
+                    demandShift = 5;
+                else if ((data[35 + i] & (1 << 1) + (1 << 0)) == (1 << 1) + (1 << 0))
+                    demandShift = 4;
+                else if ((data[35 + i] & (1 << 1)) == (1 << 1))
+                    demandShift = 3;
+                else if ((data[35 + i] & (1 << 0)) == (1 << 0))
+                    demandShift = 2;
+                else
+                    demandShift = 1;
+                copySupplyPacket += $"{value}\t{3 - demandShift}";
                 copyPopularityPacket += $"{productList[i].GetPopularity(0)}\t{productList[i].GetPopularity(7)}";
                 if (i < productList.Count - 1)
                 {
