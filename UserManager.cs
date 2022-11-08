@@ -122,15 +122,12 @@ public class UserManager
         SaveData();
     }
 
-    public bool GetProductBlacklist(int index) => ((userData.productBlacklist & (1 << index)) == 0 ? true : false);
+    public bool GetProductBlacklist(int index) => !userData.productBlacklistNew[index];
     public void SetProductBlacklist(int index, bool value)
     {
         if(value != GetProductBlacklist(index))
         {
-            if (value)
-                userData.productBlacklist -= (1 << index);
-            else
-                userData.productBlacklist += (1 << index);
+            userData.productBlacklistNew[index] = !value;
             SaveData();
         }
     }
