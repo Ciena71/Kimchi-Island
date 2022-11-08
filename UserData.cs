@@ -15,7 +15,7 @@ public class UserData
     public int grooveMax = 35;
     public int[] workshopTier = { 3, 3, 3 };
     public bool groovePriority = false;
-    public int productBlacklist;
+    public bool[] productBlacklistNew = new bool[50];
     public SalesData[] salesData = new SalesData[7];
     public long dataWeek;
 
