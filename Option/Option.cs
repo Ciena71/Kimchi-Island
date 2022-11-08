@@ -155,6 +155,7 @@ public class Option : MonoBehaviour
         btnPopularityCopy.onClick.AddListener(() => Workshop.instance.PopularityPacketDataCopy());
         FileBrowser.SetFilters(true, new FileBrowser.Filter(".exe file", ".exe"));
         btnPath.onClick.AddListener(() => StartCoroutine(FindPath()));
+        textGamePath.text = userManager.GetGamePath();
         ApplyLanguage();
     }
 
