@@ -528,6 +528,7 @@ public class Workshop : MonoBehaviour
         {
             copySupplyPacket = "";
             copyPopularityPacket = "";
+            ResourceManager resourceManager = ResourceManager.instance;
             for (int i = 0; i < productList.Count; ++i)
             {
                 int value = 0;
@@ -551,7 +552,7 @@ public class Workshop : MonoBehaviour
                 else
                     demandShift = 1;
                 copySupplyPacket += $"{value}\t{3 - demandShift}";
-                copyPopularityPacket += $"{productList[i].GetPopularity(0)}\t{productList[i].GetPopularity(7)}";
+                copyPopularityPacket += $"{resourceManager.GetStatusData(data[32], i)}\t{resourceManager.GetStatusData(data[33], i)}";
                 if (i < productList.Count - 1)
                 {
                     copySupplyPacket += "\n";
