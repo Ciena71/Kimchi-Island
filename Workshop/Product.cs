@@ -246,7 +246,7 @@ public class Product : MonoBehaviour
                     if (_peak == 2)
                         supply = new int[] { 0, 0, -4, -8, 2, 2, 2, supply[7], supply[8] };
                     else if (_peak == 0)
-                        supply = new int[] { 0, 0, -4, -8, -8, 2, 2, supply[7], supply[8] };
+                        supply = new int[] { 0, 0, 0, -8, -8, 2, 2, supply[7], supply[8] };
                     else
                         supply = new int[] { 0, 0, -8, -15, 0, 0, 0, supply[7], supply[8] };
                     break;
