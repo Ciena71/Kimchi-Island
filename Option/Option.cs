@@ -30,6 +30,12 @@ public class Option : MonoBehaviour
     public Text textPatchNoteText;
     public Button btnManual;
     public Text textManual;
+    public Button btnLicense;
+    public Text textLicense;
+    public GameObject objLicense;
+    public Text textLicenseTop;
+    public Button btnLicenseClose;
+    public Text textLicenseText;
     public Text textKimchiMaker;
     public Button btnKimchiMakerWindowsDownload;
     public Text textKimchiMakerWindowsDownload;
@@ -149,6 +155,8 @@ public class Option : MonoBehaviour
         });
         btnPatchNoteClose.onClick.AddListener(() => objPatchNote.SetActive(false));
         btnManual.onClick.AddListener(() => Application.OpenURL(resourceManager.GetURL(2)));
+        btnLicense.onClick.AddListener(() => objLicense.SetActive(true));
+        btnLicenseClose.onClick.AddListener(() => objLicense.SetActive(false));
         btnKimchiMakerWindowsDownload.onClick.AddListener(() => Application.OpenURL(resourceManager.GetURL(3)));
         btnKimchiMakerAndroidDownload.onClick.AddListener(() => Application.OpenURL(resourceManager.GetURL(4)));
         btnSupplyCopy.onClick.AddListener(() => Workshop.instance.SupplyPacketDataCopy());
@@ -191,6 +199,9 @@ public class Option : MonoBehaviour
         textPatchNote.text = resourceManager.GetText(49);
         textPatchNoteTop.text = resourceManager.GetText(49);
         textManual.text = resourceManager.GetText(42);
+        textLicense.text = resourceManager.GetText(51);
+        textLicenseTop.text = resourceManager.GetText(51);
+        textLicenseText.text = resourceManager.GetText(52);
         textKimchiMaker.text = resourceManager.GetText(43);
         textKimchiMakerWindowsDownload.text = resourceManager.GetText(44);
         textKimchiMakerAndroidDownload.text = resourceManager.GetText(44);
