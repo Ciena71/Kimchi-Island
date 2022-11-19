@@ -46,6 +46,7 @@ public class Workshop : MonoBehaviour
     public Text textCategory;
     public ScrollRect scrollTopSalesList;
     public Text textProductList;
+    public Text textTotalValue;
     public Text textExpectedValue;
     public Text textCalculate;
     public Button btnCalculate;
@@ -57,6 +58,7 @@ public class Workshop : MonoBehaviour
     int cycle;
     bool[] reverse = new bool[5];
     int sort = 0;
+    int totalValue;
 
     string copySupplyPacket;
     string copyPopularityPacket;
@@ -67,6 +69,8 @@ public class Workshop : MonoBehaviour
         ResourceManager resourceManager = ResourceManager.instance;
         resourceManager.UpdateSupplyPattern();
         UserManager userManager = UserManager.instance;
+        for (int i = 0; i < 7; ++i)
+            totalValue += userManager.GetSalesData(i).totalValue;
         for (int i = 0; i < resourceManager.GetProductMax(); ++i)
         {
             GameObject productObject = Instantiate(Resources.Load("Prefab/Workshop/Product"),scrollProductList.content) as GameObject;
@@ -453,6 +457,7 @@ public class Workshop : MonoBehaviour
             userManager.SetSalesData(cycle, new SalesData());
             nowSalesData.textSalesProductList.text = "";
             nowSalesData.textSalesValue.text = "";
+            CalculateAllData();
         });
         ApplyLanguage();
     }
@@ -510,14 +515,14 @@ public class Workshop : MonoBehaviour
         }
     }
 
-    int GetNowValue(int index, int step)
+    int GetProductValue(int _index, int _step, int _cycle, int _groove)
     {
         UserManager userManager = UserManager.instance;
-        int nowGroove = (userManager.GetCurrentGroove() + GetActiveWorkshop() * step);
-        return (step > 0 ? 2 : 1) * 
-            Mathf.FloorToInt(GetPopularityValue(productList[index].GetPopularity(cycle)) *
-            GetSupplyValue(productList[index].GetSupply(cycle)) * 
-            Mathf.FloorToInt(productList[index].GetValue() *
+        int nowGroove = (_groove + GetActiveWorkshop() * _step);
+        return (_step > 0 ? 2 : 1) * 
+            Mathf.FloorToInt(GetPopularityValue(productList[_index].GetPopularity(_cycle)) *
+            GetSupplyValue(productList[_index].GetSupply(_cycle)) * 
+            Mathf.FloorToInt(productList[_index].GetValue() *
             GetWorkshopTierValue(GetHighestWorkshopTier()) * 
             (1 + (((nowGroove < userManager.GetMaxGroove()) ? nowGroove : userManager.GetMaxGroove()) / 100.0f))));
     }
@@ -575,6 +580,7 @@ public class Workshop : MonoBehaviour
     public void ApplyLanguage()
     {
         ResourceManager resourceManager = ResourceManager.instance;
+        UserManager userManager = UserManager.instance;
         textRank.text = resourceManager.GetText(1);
         textGrooveNow.text = resourceManager.GetText(2);
         textGrooveMax.text = resourceManager.GetText(3);
@@ -592,7 +598,7 @@ public class Workshop : MonoBehaviour
         case 5:
         case 6:
             {
-                dropCycle.captionText.text = resourceManager.GetText(35).Replace("{0}", (cycle + 1).ToString());
+                dropCycle.captionText.text = resourceManager.GetText(35).Replace("{0}", (cycle + 1).ToString()) + (userManager.GetSalesData(cycle).totalValue > 0 ? $" [{userManager.GetSalesData(cycle).totalValue * GetActiveWorkshop()}]" : "");
                 break;
             }
         case 7:
@@ -620,7 +626,7 @@ public class Workshop : MonoBehaviour
             case 5:
             case 6:
                 {
-                    form.text = resourceManager.GetText(35).Replace("{0}", (num + 1).ToString());
+                    form.text = resourceManager.GetText(35).Replace("{0}", (num + 1).ToString()) + (userManager.GetSalesData(num).totalValue > 0 ? $" [{userManager.GetSalesData(num).totalValue * GetActiveWorkshop()}]" : "");
                     break;
                 }
             case 7:
@@ -644,6 +650,7 @@ public class Workshop : MonoBehaviour
         textSupply.text = resourceManager.GetText(12);
         textCategory.text = resourceManager.GetText(13);
         textProductList.text = resourceManager.GetText(7);
+        textTotalValue.text = $"{resourceManager.GetText(50)} : {totalValue * GetActiveWorkshop()}";
         textExpectedValue.text = resourceManager.GetText(14);
         textCalculate.text = resourceManager.GetText(15);
         productList.ForEach((product) =>
@@ -703,7 +710,7 @@ public class Workshop : MonoBehaviour
                                                                 salesdata.value = new int[6];
                                                                 for (int i = 0; i < 6; ++i)
                                                                 {
-                                                                    salesdata.value[i] += GetNowValue(salesdata.product[i], i);
+                                                                    salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
                                                                     salesdata.totalValue += salesdata.value[i];
                                                                     productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
                                                                 }
@@ -772,7 +779,7 @@ public class Workshop : MonoBehaviour
                                                                                 salesdata.value = new int[6];
                                                                                 for (int i = 0; i < 6; ++i)
                                                                                 {
-                                                                                    salesdata.value[i] += GetNowValue(salesdata.product[i], i);
+                                                                                    salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
                                                                                     salesdata.totalValue += salesdata.value[i];
                                                                                     productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
                                                                                 }
@@ -817,7 +824,7 @@ public class Workshop : MonoBehaviour
                                                                                             salesdata.value = new int[6];
                                                                                             for (int i = 0; i < 6; ++i)
                                                                                             {
-                                                                                                salesdata.value[i] += GetNowValue(salesdata.product[i], i);
+                                                                                                salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
                                                                                                 salesdata.totalValue += salesdata.value[i];
                                                                                                 productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
                                                                                             }
@@ -843,7 +850,7 @@ public class Workshop : MonoBehaviour
                                                                                 salesdata.value = new int[5];
                                                                                 for (int i = 0; i < 5; ++i)
                                                                                 {
-                                                                                    salesdata.value[i] += GetNowValue(salesdata.product[i], i);
+                                                                                    salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
                                                                                     salesdata.totalValue += salesdata.value[i];
                                                                                     productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
                                                                                 }
@@ -900,7 +907,7 @@ public class Workshop : MonoBehaviour
                                                                                                 salesdata.value = new int[6];
                                                                                                 for (int i = 0; i < 6; ++i)
                                                                                                 {
-                                                                                                    salesdata.value[i] += GetNowValue(salesdata.product[i], i);
+                                                                                                    salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
                                                                                                     salesdata.totalValue += salesdata.value[i];
                                                                                                     productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
                                                                                                 }
@@ -926,7 +933,7 @@ public class Workshop : MonoBehaviour
                                                                                     salesdata.value = new int[5];
                                                                                     for (int i = 0; i < 5; ++i)
                                                                                     {
-                                                                                        salesdata.value[i] += GetNowValue(salesdata.product[i], i);
+                                                                                        salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
                                                                                         salesdata.totalValue += salesdata.value[i];
                                                                                         productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
                                                                                     }
@@ -951,7 +958,7 @@ public class Workshop : MonoBehaviour
                                                                     salesdata.value = new int[4];
                                                                     for (int i = 0; i < 4; ++i)
                                                                     {
-                                                                        salesdata.value[i] += GetNowValue(salesdata.product[i], i);
+                                                                        salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
                                                                         salesdata.totalValue += salesdata.value[i];
                                                                         productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
                                                                     }
@@ -1017,7 +1024,7 @@ public class Workshop : MonoBehaviour
                                                                                                     salesdata.value = new int[6];
                                                                                                     for (int i = 0; i < 6; ++i)
                                                                                                     {
-                                                                                                        salesdata.value[i] += GetNowValue(salesdata.product[i], i);
+                                                                                                        salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
                                                                                                         salesdata.totalValue += salesdata.value[i];
                                                                                                         productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
                                                                                                     }
@@ -1043,7 +1050,7 @@ public class Workshop : MonoBehaviour
                                                                                         salesdata.value = new int[5];
                                                                                         for (int i = 0; i < 5; ++i)
                                                                                         {
-                                                                                            salesdata.value[i] += GetNowValue(salesdata.product[i], i);
+                                                                                            salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
                                                                                             salesdata.totalValue += salesdata.value[i];
                                                                                             productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
                                                                                         }
@@ -1068,7 +1075,7 @@ public class Workshop : MonoBehaviour
                                                                         salesdata.value = new int[4];
                                                                         for (int i = 0; i < 4; ++i)
                                                                         {
-                                                                            salesdata.value[i] += GetNowValue(salesdata.product[i], i);
+                                                                            salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
                                                                             salesdata.totalValue += salesdata.value[i];
                                                                             productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
                                                                         }
@@ -1091,7 +1098,7 @@ public class Workshop : MonoBehaviour
                                                         salesdata.value = new int[3];
                                                         for (int i = 0; i < 3; ++i)
                                                         {
-                                                            salesdata.value[i] += GetNowValue(salesdata.product[i], i);
+                                                            salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
                                                             salesdata.totalValue += salesdata.value[i];
                                                             productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
                                                         }
@@ -1161,7 +1168,7 @@ public class Workshop : MonoBehaviour
                                                                                                 salesdata.value = new int[6];
                                                                                                 for (int i = 0; i < 6; ++i)
                                                                                                 {
-                                                                                                    salesdata.value[i] += GetNowValue(salesdata.product[i], i);
+                                                                                                    salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
                                                                                                     salesdata.totalValue += salesdata.value[i];
                                                                                                     productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
                                                                                                 }
@@ -1187,7 +1194,7 @@ public class Workshop : MonoBehaviour
                                                                                     salesdata.value = new int[5];
                                                                                     for (int i = 0; i < 5; ++i)
                                                                                     {
-                                                                                        salesdata.value[i] += GetNowValue(salesdata.product[i], i);
+                                                                                        salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
                                                                                         salesdata.totalValue += salesdata.value[i];
                                                                                         productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
                                                                                     }
@@ -1212,7 +1219,7 @@ public class Workshop : MonoBehaviour
                                                                     salesdata.value = new int[4];
                                                                     for (int i = 0; i < 4; ++i)
                                                                     {
-                                                                        salesdata.value[i] += GetNowValue(salesdata.product[i], i);
+                                                                        salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
                                                                         salesdata.totalValue += salesdata.value[i];
                                                                         productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
                                                                     }
@@ -1235,7 +1242,7 @@ public class Workshop : MonoBehaviour
                                                     salesdata.value = new int[3];
                                                     for (int i = 0; i < 3; ++i)
                                                     {
-                                                        salesdata.value[i] += GetNowValue(salesdata.product[i], i);
+                                                        salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
                                                         salesdata.totalValue += salesdata.value[i];
                                                         productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
                                                     }
@@ -1312,7 +1319,7 @@ public class Workshop : MonoBehaviour
                                                                                         salesdata.value = new int[6];
                                                                                         for (int i = 0; i < 6; ++i)
                                                                                         {
-                                                                                            salesdata.value[i] += GetNowValue(salesdata.product[i], i);
+                                                                                            salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
                                                                                             salesdata.totalValue += salesdata.value[i];
                                                                                             productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
                                                                                         }
@@ -1338,7 +1345,7 @@ public class Workshop : MonoBehaviour
                                                                             salesdata.value = new int[5];
                                                                             for (int i = 0; i < 5; ++i)
                                                                             {
-                                                                                salesdata.value[i] += GetNowValue(salesdata.product[i], i);
+                                                                                salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
                                                                                 salesdata.totalValue += salesdata.value[i];
                                                                                 productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
                                                                             }
@@ -1363,7 +1370,7 @@ public class Workshop : MonoBehaviour
                                                             salesdata.value = new int[4];
                                                             for (int i = 0; i < 4; ++i)
                                                             {
-                                                                salesdata.value[i] += GetNowValue(salesdata.product[i], i);
+                                                                salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
                                                                 salesdata.totalValue += salesdata.value[i];
                                                                 productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
                                                             }
@@ -1386,7 +1393,7 @@ public class Workshop : MonoBehaviour
                                             salesdata.value = new int[3];
                                             for (int i = 0; i < 3; ++i)
                                             {
-                                                salesdata.value[i] += GetNowValue(salesdata.product[i], i);
+                                                salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
                                                 salesdata.totalValue += salesdata.value[i];
                                                 productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
                                             }
@@ -1485,6 +1492,40 @@ public class Workshop : MonoBehaviour
                         productList[list.GetData().product[i]].AddSupply(j, value);
                 }
             }
+            CalculateAllData();
         }
+    }
+
+    void CalculateAllData()
+    {
+        UserManager userManager = UserManager.instance;
+        ResourceManager resourceManager = ResourceManager.instance;
+        int nowGroove = 0;
+        totalValue = 0;
+        for (int i = 0; i < 7; ++i)
+        {
+            if (userManager.GetSalesData(i).product != null && userManager.GetSalesData(i).product.Length > 0)
+            {
+                int dayValue = 0;
+                SalesData form = userManager.GetSalesData(i);
+                for (int j = 0; j < userManager.GetSalesData(i).product.Length; ++j)
+                    productList[userManager.GetSalesData(i).product[j]].ResetCount();
+                for (int j = 0; j < userManager.GetSalesData(i).product.Length; ++j)
+                {
+                    form.value[j] = GetProductValue(userManager.GetSalesData(i).product[j], j, i, nowGroove);
+                    dayValue += form.value[j];
+                    productList[userManager.GetSalesData(i).product[j]].AddCount(GetActiveWorkshop() * (j == 0 ? 1 : 2));
+                }
+                form.totalValue = dayValue;
+                totalValue += dayValue;
+                userManager.SetSalesData(i, form);
+                nowGroove += (userManager.GetSalesData(i).product.Length - 1) * GetActiveWorkshop();
+                dropCycle.options[i].text = resourceManager.GetText(35).Replace("{0}", (i + 1).ToString()) + $" [{userManager.GetSalesData(i).totalValue * GetActiveWorkshop()}]";
+            }
+            else
+                dropCycle.options[i].text = resourceManager.GetText(35).Replace("{0}", (i + 1).ToString());
+        }
+        textTotalValue.text = $"{resourceManager.GetText(50)} : {totalValue * GetActiveWorkshop()}";
+        dropCycle.captionText.text = resourceManager.GetText(35).Replace("{0}", (cycle + 1).ToString()) + (userManager.GetSalesData(cycle).totalValue > 0 ? $" [{userManager.GetSalesData(cycle).totalValue * GetActiveWorkshop()}]" : "");
     }
 }
