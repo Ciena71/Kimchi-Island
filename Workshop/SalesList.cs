@@ -12,12 +12,13 @@ public class ProductMaterials
 
 public class SalesList : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IScrollHandler
 {
+    public RectTransform rectSalesProductList;
     public Button btnSalesProductList;
     public EventTrigger eventSalesProductList;
     public TextMeshProUGUI textSalesProductList;
     public Text textSalesValue;
 
-    SalesData salesData;
+    List<SalesData> salesData = new List<SalesData>();
 
     private void Awake()
     {
@@ -31,33 +32,36 @@ public class SalesList : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
         entry.eventID = EventTriggerType.PointerEnter;
         entry.callback.AddListener((data) =>
         {
-            if (salesData.product != null && salesData.product.Length > 0)
+            if (salesData.Count == 1)
             {
-                ResourceManager resourceManager = ResourceManager.instance;
-                Dictionary<int, int> quantity = new Dictionary<int, int>();
-                for (int i = 0; i < salesData.product.Length; ++i)
+                if (salesData[0].product != null && salesData[0].productSize > 0)
                 {
-                    ProductMaterials mats = resourceManager.GetProductMaterials(salesData.product[i]);
-                    for (int j = 0; j < mats.index.Length; ++j)
+                    ResourceManager resourceManager = ResourceManager.instance;
+                    Dictionary<int, int> quantity = new Dictionary<int, int>();
+                    for (int i = 0; i < salesData[0].productSize; ++i)
                     {
-                        if (!quantity.ContainsKey(mats.index[j]))
-                            quantity.Add(mats.index[j], mats.quantity[j]);
-                        else
-                            quantity[mats.index[j]] += mats.quantity[j];
+                        ProductMaterials mats = resourceManager.GetProductMaterials(salesData[0].product[i]);
+                        for (int j = 0; j < mats.index.Length; ++j)
+                        {
+                            if (!quantity.ContainsKey(mats.index[j]))
+                                quantity.Add(mats.index[j], mats.quantity[j]);
+                            else
+                                quantity[mats.index[j]] += mats.quantity[j];
+                        }
+                        mats = null;
                     }
-                    mats = null;
+                    string text = "";
+                    foreach (KeyValuePair<int, int> kv in quantity)
+                    {
+                        int value = kv.Value * workshop.GetActiveWorkshop() - userManager.GetInventory(kv.Key);
+                        if (value < 0)
+                            value = 0;
+                        text += $"<sprite={kv.Key}>{resourceManager.GetItemName(kv.Key)} : {value}\n";
+                    }
+                    quantity.Clear();
+                    quantity = null;
+                    Tooltip.instance.ShowToolTip(text);
                 }
-                string text = "";
-                foreach (KeyValuePair<int, int> kv in quantity)
-                {
-                    int value = kv.Value * workshop.GetActiveWorkshop() - userManager.GetInventory(kv.Key);
-                    if (value < 0)
-                        value = 0;
-                    text += $"<sprite={kv.Key}>{resourceManager.GetItemName(kv.Key)} : {value}\n";
-                }
-                quantity.Clear();
-                quantity = null;
-                Tooltip.instance.ShowToolTip(text);
             }
         });
         eventSalesProductList.triggers.Add(entry);
@@ -70,9 +74,19 @@ public class SalesList : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
         eventSalesProductList.triggers.Add(entry1);
     }
 
-    public void SetData(SalesData _salesData) => salesData = _salesData;
+    public void SetData(SalesData _salesData)
+    {
+        salesData.Clear();
+        salesData.Add(_salesData);
+    }
 
-    public SalesData GetData() => salesData;
+    public void SetDatas(SalesData[] _salesData)
+    {
+        salesData.Clear();
+        salesData.AddRange(_salesData);
+    }
+
+    public List<SalesData> GetData() => salesData;
 
     public void OnBeginDrag(PointerEventData data)
     {
