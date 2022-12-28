@@ -175,6 +175,22 @@ public class UserManager
         SaveData();
     }
 
+    public int GetCPUThread() => (userData.cpuThread < Environment.ProcessorCount ? (userData.cpuThread > 0 ? userData.cpuThread : 1) : Environment.ProcessorCount - 1);
+    public void SetCPUThread(int value)
+    {
+        if (value <= 0 || value >= Environment.ProcessorCount)
+            return;
+        userData.cpuThread = value;
+        SaveData();
+    }
+
+    public bool IsGPUCalculate() => userData.gpuCalculate;
+    public void SetGPUCalculate(bool value)
+    {
+        userData.gpuCalculate = value;
+        SaveData();
+    }
+
     void LoadData()
     {
         if (IsFileExist())
