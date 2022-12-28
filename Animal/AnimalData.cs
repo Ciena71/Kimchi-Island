@@ -83,16 +83,13 @@ public class AnimalData : MonoBehaviour
     public void PointerEnter()
     {
         ResourceManager resourceManager = ResourceManager.instance;
-        int num = (size >= 0 ? 1 : 0) + (time >= 0 ? 1 : 0) + (weather >= 0 ? 1 : 0);
+        int num = 3 + (time >= 0 ? 1 : 0) + (weather >= 0 ? 1 : 0);
         string[] title = new string[num];
         string[] des = new string[num];
         num = 0;
-        if (size >= 0)
-        {
-            title[num] = resourceManager.GetText(23);
-            des[num] = resourceManager.GetSize(size);
-            ++num;
-        }
+        title[num] = resourceManager.GetText(23);
+        des[num] = resourceManager.GetSize(size);
+        ++num;
         if (time >= 0)
         {
             title[num] = resourceManager.GetText(8);
@@ -105,6 +102,11 @@ public class AnimalData : MonoBehaviour
             des[num] = resourceManager.GetWeather(weather);
             ++num;
         }
+        title[num] = resourceManager.GetText(59);
+        des[num] = resourceManager.GetItemName(resourceManager.GetAnimalNormalLeaving(index));
+        ++num;
+        title[num] = resourceManager.GetText(60);
+        des[num] = resourceManager.GetItemName(resourceManager.GetAnimalRareLeaving(index));
         Tooltip.instance.ShowToolTip(imgIcon.sprite, resourceManager.GetAnimalName(index), title, des);
     }
 
