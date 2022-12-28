@@ -536,7 +536,7 @@ public class Workshop : MonoBehaviour
                         break;
                     }
                 }
-                if (count < 2) return;
+                if (count != 2 && count != 3) return;
                 SalesDataList highestResult = new SalesDataList();
                 for (int i = 0; i < 3; ++i)
                     highestResult.salesData[i] = new SalesData();
