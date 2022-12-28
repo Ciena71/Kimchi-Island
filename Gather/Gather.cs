@@ -38,6 +38,7 @@ public class Gather : MonoBehaviour
         });
         nodeList.Clear();
         nodeList = null;
+        ApplyLanguage();
     }
 
     public bool ShowNode(int _item)
