@@ -1,13 +1,32 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 
 [Serializable]
-public struct SalesData
+public class SalesData
 {
-    public int[] product;
-    public int[] value;
+    public SalesData()
+    {
+    }
+
+    public SalesData(SalesData copy)
+    {
+        for(int i = 0;i<6;++i)
+            product[i] = copy.product[i];
+        productSize = copy.productSize;
+    }
+
+    public int[] product = new int[6];
+    public int productSize = 0;
+    public int[] value = new int[6];
+    public int totalValue = 0;
+}
+
+public class SalesDataList
+{
+    public SalesData[] salesData = new SalesData[3];
     public int totalValue;
 }
 
@@ -44,6 +63,7 @@ public class Workshop : MonoBehaviour
     public Text textSupply;
     public Button btnSupply;
     public Text textCategory;
+    public RectTransform rectTopSalesList;
     public ScrollRect scrollTopSalesList;
     public Text textProductList;
     public Text textTotalValue;
@@ -52,6 +72,16 @@ public class Workshop : MonoBehaviour
     public Button btnCalculate;
     public SalesList nowSalesData;
     public Button btnNowSales;
+    public GameObject objRangeCycle;
+    public Text textRangeCycle;
+    public Text textCPUThreadMax;
+    public Text textCPUThreadMaxValue;
+    public Text textCPUThread;
+    public InputField inputCPUThread;
+    public Text textGPU;
+    public Toggle toggleGPU;
+    public Button btnCrimeTime;
+    public Text textCrimeTime;
 
     static List<Product> productList = new List<Product>();
     List<GameObject> salesList = new List<GameObject>();
@@ -62,6 +92,25 @@ public class Workshop : MonoBehaviour
 
     string copySupplyPacket;
     string copyPopularityPacket;
+
+    [SerializeField]
+    ComputeShader gpuCalculate;
+    ComputeBuffer gpuCalculateValue;
+    ComputeBuffer gpuCalculateSupply;
+    ComputeBuffer gpuCalculatePopularity;
+    ComputeBuffer gpuCalculateItemA;
+    ComputeBuffer gpuCalculateItemB;
+    ComputeBuffer gpuCalculateItemC;
+    ComputeBuffer gpuCalculateItemD;
+    ComputeBuffer gpuCalculateItemE;
+    ComputeBuffer gpuCalculateItemF;
+    ComputeBuffer gpuCalculateResultA;
+    ComputeBuffer gpuCalculateResultB;
+    ComputeBuffer gpuCalculateResultC;
+    ComputeBuffer gpuCalculateResultD;
+    ComputeBuffer gpuCalculateResultE;
+    ComputeBuffer gpuCalculateResultF;
+    ComputeBuffer gpuCalculateResultTotal;
 
     void Awake()
     {
@@ -170,11 +219,11 @@ public class Workshop : MonoBehaviour
                 nowSalesData.SetData(userManager.GetSalesData(cycle));
                 string productListString = "";
                 string productValueString = "";
-                if (userManager.GetSalesData(cycle).product != null && userManager.GetSalesData(cycle).product.Length > 0)
+                if (userManager.GetSalesData(cycle).product != null && userManager.GetSalesData(cycle).productSize > 0)
                 {
                     productListString = "";
                     productValueString = $"{userManager.GetSalesData(cycle).totalValue * GetActiveWorkshop()} | {userManager.GetSalesData(cycle).totalValue} = ";
-                    for (int i = 0; i < userManager.GetSalesData(cycle).product.Length; ++i)
+                    for (int i = 0; i < userManager.GetSalesData(cycle).productSize; ++i)
                     {
                         if (i > 0)
                         {
@@ -190,7 +239,7 @@ public class Workshop : MonoBehaviour
                 {
                     for (int i = 0; i < cycle; ++i)
                     {
-                        int dummy = (userManager.GetSalesData(i).product != null ? userManager.GetSalesData(i).product.Length : 0);
+                        int dummy = (userManager.GetSalesData(i).product != null ? userManager.GetSalesData(i).productSize : 0);
                         groove += GetActiveWorkshop() * (dummy >= 2 ? (dummy - 1) : 0);
                     }
                 }
@@ -200,15 +249,45 @@ public class Workshop : MonoBehaviour
                 inputGrooveNow.text = groove.ToString();
                 nowSalesData.textSalesProductList.text = productListString;
                 nowSalesData.textSalesValue.text = productValueString;
+                nowSalesData.gameObject.SetActive(true);
             }
             else
             {
                 nowSalesData.SetData(new SalesData());
                 nowSalesData.textSalesProductList.text = "";
                 nowSalesData.textSalesValue.text = "";
+                nowSalesData.gameObject.SetActive(false);
             }
-            for (int i = 0; i < productList.Count; ++i)
-                productList[i].SetCycle(value);
+            if (cycle == 7)
+            {
+                int groove = 0;
+                if (cycle > 0)
+                {
+                    for (int i = 0; i < 4; ++i)
+                    {
+                        int dummy = (userManager.GetSalesData(i).product != null ? userManager.GetSalesData(i).productSize : 0);
+                        groove += GetActiveWorkshop() * (dummy >= 2 ? (dummy - 1) : 0);
+                    }
+                }
+                if (groove > userManager.GetMaxGroove())
+                    groove = userManager.GetMaxGroove();
+                userManager.SetCurrentGroove(groove);
+                inputGrooveNow.text = groove.ToString();
+                scrollProductList.gameObject.SetActive(false);
+                objRangeCycle.SetActive(true);
+                rectTopSalesList.offsetMax = new Vector2(rectTopSalesList.offsetMax.x, -300);
+            }
+            else
+            {
+                if (oldCycle == 7)
+                {
+                    rectTopSalesList.offsetMax = new Vector2(rectTopSalesList.offsetMax.x, -700);
+                    objRangeCycle.SetActive(false);
+                    scrollProductList.gameObject.SetActive(true);
+                }
+                for (int i = 0; i < productList.Count; ++i)
+                    productList[i].SetCycle(value);
+            }
         });
         btnProductName.onClick.AddListener(() =>
         {
@@ -387,11 +466,11 @@ public class Workshop : MonoBehaviour
         nowSalesData.SetData(userManager.GetSalesData(0));
         string productListString = "";
         string productValueString = "";
-        if (userManager.GetSalesData(0).product != null && userManager.GetSalesData(0).product.Length > 0)
+        if (userManager.GetSalesData(0).product != null && userManager.GetSalesData(0).productSize > 0)
         {
             productListString = "";
             productValueString = $"{userManager.GetSalesData(0).totalValue * GetActiveWorkshop()} | {userManager.GetSalesData(0).totalValue} = ";
-            for (int i = 0; i < userManager.GetSalesData(0).product.Length; ++i)
+            for (int i = 0; i < userManager.GetSalesData(0).productSize; ++i)
             {
                 if (i > 0)
                 {
@@ -411,43 +490,594 @@ public class Workshop : MonoBehaviour
                 Destroy(data);
             });
             salesList.Clear();
-            List<SalesData> SalesDataList = GetResultList();
-            SalesDataList.Sort((x1, x2) => x2.totalValue.CompareTo(x1.totalValue));
-            foreach (var dummySalesData in SalesDataList)
+            if (cycle != 7)
             {
-                if (salesList.Count < 100)
+                List<SalesData> SalesDataList = GetResultList(cycle, new int[productList.Count], userManager.GetCurrentGroove(), false);
+                SalesDataList.Sort((x1, x2) => x2.totalValue.CompareTo(x1.totalValue));
+                foreach (SalesData dummySalesData in SalesDataList)
                 {
-                    GameObject salesListObject = Instantiate(Resources.Load("Prefab/Workshop/SalesList"), scrollTopSalesList.content) as GameObject;
-                    SalesList data = salesListObject.GetComponent<SalesList>();
-                    data.SetData(dummySalesData);
-                    string productListString = "";
-                    string productValueString = $"{dummySalesData.totalValue * GetActiveWorkshop()} | {dummySalesData.totalValue} = ";
-                    for (int i = 0; i < dummySalesData.product.Length; ++i)
+                    if (salesList.Count < 100)
                     {
-                        if (i > 0)
+                        GameObject salesListObject = Instantiate(Resources.Load("Prefab/Workshop/SalesList"), scrollTopSalesList.content) as GameObject;
+                        SalesList data = salesListObject.GetComponent<SalesList>();
+                        data.SetData(dummySalesData);
+                        string productListString = "";
+                        string productValueString = $"{dummySalesData.totalValue * GetActiveWorkshop()} | {dummySalesData.totalValue} = ";
+                        for (int i = 0; i < dummySalesData.productSize; ++i)
                         {
-                            productListString += " + ";
-                            productValueString += " + ";
+                            if (i > 0)
+                            {
+                                productListString += " + ";
+                                productValueString += " + ";
+                            }
+                            productListString += $"<sprite={dummySalesData.product[i]}> {resourceManager.GetProductName(dummySalesData.product[i])}";
+                            productValueString += dummySalesData.value[i].ToString();
                         }
-                        productListString += $"<sprite={dummySalesData.product[i]}> {resourceManager.GetProductName(dummySalesData.product[i])}";
-                        productValueString += dummySalesData.value[i].ToString();
+                        data.textSalesProductList.text = productListString;
+                        data.textSalesValue.text = productValueString;
+                        salesList.Add(salesListObject);
                     }
-                    data.textSalesProductList.text = productListString;
-                    data.textSalesValue.text = productValueString;
-                    salesList.Add(salesListObject);
+                    else
+                        break;
+                }
+                SalesDataList.Clear();
+                SalesDataList = null;
+            }
+            else
+            {/*
+                SalesDataList highestData = new SalesDataList();
+                highestData.salesData = new SalesData[7];
+                SalesDataList nowData = new SalesDataList();
+                nowData.salesData = new SalesData[7];
+                int[] stack = new int[productList.Count];
+                int[,] items = new int[3, 6];
+                bool end = false;
+                while(end)
+                {
+
+                    for (int i = 0; i < 3; ++i)
+                    {
+                        for (int j = 0; j < 6; ++j)
+                        {
+                            if (items[i, j] > 0 && productList[items[i, j]].IsActive() && ((productList[items[i, j]].GetCategory() & productList[items[i, j - 1]].GetCategory()) > 0))
+                            {
+                                Array.Resize(ref nowData.salesData[4 + i].product, j + 1);
+                                GetProductValue(items[i, j] - 1, j, 4 + i, userManager.GetCurrentGroove(), stack[items[i, j] - 1]);
+                            }
+                            else
+                                break;
+                        }
+                    }
+                }*/
+                /*
+                int black = 0;
+                for(int i = 0;i<productList.Count;++i)
+                {
+                    if (userManager.GetProductBlacklist(i))
+                    {
+                        ++black;
+                        if (black > 10)
+                            return;
+                    }
+                }
+                List<SalesDataList> SalesDataLists = new List<SalesDataList>();
+                int[] stack = new int[productList.Count];
+                List<SalesData> SalesDataList5 = GetResultList(4, stack, false);
+                SalesDataList5.Sort((x1, x2) => x2.totalValue.CompareTo(x1.totalValue));
+                for (int a = 0; a < 100; ++a)
+                {
+                    SalesData day5 = SalesDataList5[a];
+                    for (int i = 0; i < day5.productSize; ++i)
+                    {
+                        if (i == 0)
+                            stack[day5.product[i]] += GetActiveWorkshop();
+                        else
+                            stack[day5.product[i]] += GetActiveWorkshop() * 2;
+                    }
+                    List<SalesData> SalesDataList6 = GetResultList(5, stack, false);
+                    SalesDataList6.Sort((x1, x2) => x2.totalValue.CompareTo(x1.totalValue));
+                    for (int b = 0; b < 100; ++b)
+                    {
+                        SalesData day6 = SalesDataList6[b];
+                        for (int i = 0; i < day6.productSize; ++i)
+                        {
+                            if (i == 0)
+                                stack[day6.product[i]] += GetActiveWorkshop();
+                            else
+                                stack[day6.product[i]] += GetActiveWorkshop() * 2;
+                        }
+                        List<SalesData> SalesDataList7 = GetResultList(6, stack, true);
+                        SalesDataList7.ForEach((day7) =>
+                        {
+                            SalesDataList form = new SalesDataList();
+                            form.salesData = new SalesData[3];
+                            form.salesData[0] = day5;
+                            form.salesData[1] = day6;
+                            form.salesData[2] = day7;
+                            for (int i = 0; i < form.salesData.Length; ++i)
+                                form.totalValue += form.salesData[i].totalValue;
+                            SalesDataLists.Add(form);
+                        });
+                        SalesDataList7.Clear();
+                        SalesDataList7 = null;
+                        for (int i = 0; i < day6.productSize; ++i)
+                        {
+                            if (i == 0)
+                                stack[day6.product[i]] -= GetActiveWorkshop();
+                            else
+                                stack[day6.product[i]] -= GetActiveWorkshop() * 2;
+                        }
+                    }
+                    SalesDataList6.Clear();
+                    SalesDataList6 = null;
+                    for (int i = 0; i < day5.productSize; ++i)
+                        stack[day5.product[i]] = 0;
+                }
+                SalesDataList5.Clear();
+                SalesDataList5 = null;
+                SalesDataLists.Sort((x1, x2) => x2.totalValue.CompareTo(x1.totalValue));
+                foreach (SalesDataList dummySalesData in SalesDataLists)
+                {
+                    if (salesList.Count < 100)
+                    {
+                        GameObject salesListObject = Instantiate(Resources.Load("Prefab/Workshop/SalesList"), scrollTopSalesList.content) as GameObject;
+                        SalesList data = salesListObject.GetComponent<SalesList>();
+                        data.rectSalesProductList.offsetMax = new Vector2(data.rectSalesProductList.offsetMax.x, 50 * (dummySalesData.salesData.Length - 1));
+                        //data.SetData(dummySalesData);
+                        string productListString = "";
+                        string productValueString = "";
+                        for (int j = 0; j < dummySalesData.salesData.Length; ++j)
+                        {
+                            productValueString += $"{dummySalesData.salesData[j].totalValue * GetActiveWorkshop()} | {dummySalesData.salesData[j].totalValue} = ";
+                            for (int i = 0; i < dummySalesData.salesData[j].productSize; ++i)
+                            {
+                                if (i > 0)
+                                {
+                                    productListString += " + ";
+                                    productValueString += " + ";
+                                }
+                                productListString += $"<sprite={dummySalesData.salesData[j].product[i]}> {resourceManager.GetProductName(dummySalesData.salesData[j].product[i])}";
+                                productValueString += dummySalesData.salesData[j].value[i].ToString();
+                            }
+                            productListString += "\n";
+                            productValueString += "\n";
+                        }
+                        productListString += " ";
+                        productValueString += dummySalesData.totalValue * GetActiveWorkshop();
+                        data.textSalesProductList.text = productListString;
+                        data.textSalesValue.text = productValueString;
+                        salesList.Add(salesListObject);
+                    }
+                    else
+                        break;
+                }
+                SalesDataLists.Clear();
+                SalesDataLists = null;*/
+                int count = 5;
+                for (int i = 0; i < 7; ++i)
+                {
+                    if (userManager.GetSalesData(i).totalValue > 0)
+                        --count;
+                    if (i >= 5 && userManager.GetSalesData(i).totalValue > 0)
+                    {
+                        count = 0;
+                        break;
+                    }
+                }
+                if (count < 2) return;
+                SalesDataList highestResult = new SalesDataList();
+                for (int i = 0; i < 3; ++i)
+                    highestResult.salesData[i] = new SalesData();/*
+                SalesDataList[] threadResult = new SalesDataList[userManager.GetCPUThread()];
+                for (int j = 0; j < threadResult.Length; ++j)
+                {
+                    threadResult[j] = new SalesDataList();
+                    for (int i = 0; i < 3; ++i)
+                        threadResult[j].salesData[i] = new SalesData();
+                }*/
+                if(userManager.IsGPUCalculate())
+                {
+                    List<SalesData> dataList = GetEnableList();
+                    if (count >= 3)
+                    {
+                        EachResultList(4, new int[50], userManager.GetCurrentGroove(), false, (day5) =>
+                        {
+                            int[] stackA = new int[productList.Count];
+                            for (int i = 0; i < day5.productSize; ++i)
+                                stackA[day5.product[i]] += i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2;
+                            EachResultList(5, stackA, userManager.GetCurrentGroove() + (day5.productSize - 1) * GetActiveWorkshop(), false, (day6) =>
+                            {
+                                int[] stackB = new int[productList.Count];
+                                for (int i = 0; i < day5.productSize; ++i)
+                                    stackB[day5.product[i]] += i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2;
+                                for (int i = 0; i < day6.productSize; ++i)
+                                    stackB[day6.product[i]] += i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2;
+                                EachResultList(6, stackB, userManager.GetCurrentGroove() + (day5.productSize + day6.productSize - 2) * GetActiveWorkshop(), false, (day7) =>
+                                {
+                                    if (highestResult.totalValue < day5.totalValue + day6.totalValue + day7.totalValue)
+                                    {
+                                        highestResult.salesData[0].productSize = day5.productSize;
+                                        for (int i = 0; i < day5.productSize; ++i)
+                                            highestResult.salesData[0].product[i] = day5.product[i];
+                                        for (int i = 0; i < day5.productSize; ++i)
+                                            highestResult.salesData[0].value[i] = day5.value[i];
+                                        highestResult.salesData[0].totalValue = day5.totalValue;
+                                        highestResult.salesData[1].productSize = day6.productSize;
+                                        for (int i = 0; i < day6.productSize; ++i)
+                                            highestResult.salesData[1].product[i] = day6.product[i];
+                                        for (int i = 0; i < day6.productSize; ++i)
+                                            highestResult.salesData[1].value[i] = day6.value[i];
+                                        highestResult.salesData[1].totalValue = day6.totalValue;
+                                        highestResult.salesData[2].productSize = day7.productSize;
+                                        for (int i = 0; i < day7.productSize; ++i)
+                                            highestResult.salesData[2].product[i] = day7.product[i];
+                                        for (int i = 0; i < day7.productSize; ++i)
+                                            highestResult.salesData[2].value[i] = day7.value[i];
+                                        highestResult.salesData[2].totalValue = day7.totalValue;
+                                        highestResult.totalValue = day5.totalValue + day6.totalValue + day7.totalValue;
+                                    }
+                                });
+                                stackB = null;
+                            });
+                            stackA = null;
+                        });
+                    }
+                    else if (count == 2)
+                    {
+                        EachResultList(4, new int[50], userManager.GetCurrentGroove(), false, (day5) =>
+                        {
+                            int[] stack = new int[productList.Count];
+                            for (int i = 0; i < day5.productSize; ++i)
+                                stack[day5.product[i]] += (i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2);
+                            SalesData day6 = GetHighestResultGPU(5, stack, userManager.GetCurrentGroove() + (day5.productSize - 1) * GetActiveWorkshop(), dataList);
+                            if (highestResult.totalValue < day5.totalValue + day6.totalValue)
+                            {
+                                highestResult.salesData[0].productSize = day5.productSize;
+                                for (int i = 0; i < day5.productSize; ++i)
+                                    highestResult.salesData[0].product[i] = day5.product[i];
+                                for (int i = 0; i < day5.productSize; ++i)
+                                    highestResult.salesData[0].value[i] = day5.value[i];
+                                highestResult.salesData[0].totalValue = day5.totalValue;
+                                highestResult.salesData[1].productSize = day6.productSize;
+                                for (int i = 0; i < day6.productSize; ++i)
+                                    highestResult.salesData[1].product[i] = day6.product[i];
+                                for (int i = 0; i < day6.productSize; ++i)
+                                    highestResult.salesData[1].value[i] = day6.value[i];
+                                highestResult.salesData[1].totalValue = day6.totalValue;
+                                highestResult.salesData[2].productSize = 0;
+                                highestResult.salesData[2].totalValue = 0;
+                                highestResult.totalValue = day5.totalValue + day6.totalValue;
+                            }
+                            day6.product = null;
+                            day6.productSize = default;
+                            day6.totalValue = default;
+                            day6.value = null;
+                            day6 = null;
+                            SalesData day7 = GetHighestResultGPU(6, stack, userManager.GetCurrentGroove() + (day5.productSize - 1) * GetActiveWorkshop(), dataList);
+                            if (highestResult.totalValue < day5.totalValue + day7.totalValue)
+                            {
+                                highestResult.salesData[0].productSize = day5.productSize;
+                                for (int i = 0; i < day5.productSize; ++i)
+                                    highestResult.salesData[0].product[i] = day5.product[i];
+                                for (int i = 0; i < day5.productSize; ++i)
+                                    highestResult.salesData[0].value[i] = day5.value[i];
+                                highestResult.salesData[0].totalValue = day5.totalValue;
+                                highestResult.salesData[1].productSize = 0;
+                                highestResult.salesData[1].totalValue = 0;
+                                highestResult.salesData[2].productSize = day7.productSize;
+                                for (int i = 0; i < day7.productSize; ++i)
+                                    highestResult.salesData[2].product[i] = day7.product[i];
+                                for (int i = 0; i < day7.productSize; ++i)
+                                    highestResult.salesData[2].value[i] = day7.value[i];
+                                highestResult.salesData[2].totalValue = day7.totalValue;
+                                highestResult.totalValue = day5.totalValue + day7.totalValue;
+                            }
+                            day7.product = null;
+                            day7.productSize = default;
+                            day7.totalValue = default;
+                            day7.value = null;
+                            day7 = null;
+                            stack = null;
+                        });
+                        EachResultList(5, new int[50], userManager.GetCurrentGroove(), false, (day6) =>
+                        {
+                            int[] stack = new int[productList.Count];
+                            for (int i = 0; i < day6.productSize; ++i)
+                                stack[day6.product[i]] += (i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2);
+                            SalesData day7 = GetHighestResultGPU(6, stack, userManager.GetCurrentGroove() + (day6.productSize - 1) * GetActiveWorkshop(), dataList);
+                            if (highestResult.totalValue < day6.totalValue + day7.totalValue)
+                            {
+                                highestResult.salesData[0].productSize = 0;
+                                highestResult.salesData[0].totalValue = 0;
+                                highestResult.salesData[1].productSize = day6.productSize;
+                                for (int i = 0; i < day6.productSize; ++i)
+                                    highestResult.salesData[1].product[i] = day6.product[i];
+                                for (int i = 0; i < day6.productSize; ++i)
+                                    highestResult.salesData[1].value[i] = day6.value[i];
+                                highestResult.salesData[1].totalValue = day6.totalValue;
+                                highestResult.salesData[2].productSize = day7.productSize;
+                                for (int i = 0; i < day7.productSize; ++i)
+                                    highestResult.salesData[2].product[i] = day7.product[i];
+                                for (int i = 0; i < day7.productSize; ++i)
+                                    highestResult.salesData[2].value[i] = day7.value[i];
+                                highestResult.salesData[2].totalValue = day7.totalValue;
+                                highestResult.totalValue = day6.totalValue + day7.totalValue;
+                            }
+                            day7.product = null;
+                            day7.productSize = default;
+                            day7.totalValue = default;
+                            day7.value = null;
+                            day7 = null;
+                            stack = null;
+                        });
+                    }
                 }
                 else
-                    break;
+                {
+                    List<SalesData> salesDataList = GetResultList(4, new int[productList.Count], userManager.GetCurrentGroove(), false);
+                    if (count >= 3)
+                    {
+                        Parallel.ForEach(salesDataList, new ParallelOptions { MaxDegreeOfParallelism = userManager.GetCPUThread() }, day5 =>
+                        {
+                            int[] stackA = new int[productList.Count];
+                            for (int i = 0; i < day5.productSize; ++i)
+                                stackA[day5.product[i]] += i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2;
+                            EachResultList(5, stackA, userManager.GetCurrentGroove() + (day5.productSize - 1) * GetActiveWorkshop(), false, (day6) =>
+                            {
+                                int[] stackB = new int[productList.Count];
+                                for (int i = 0; i < day5.productSize; ++i)
+                                    stackB[day5.product[i]] += i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2;
+                                for (int i = 0; i < day6.productSize; ++i)
+                                    stackB[day6.product[i]] += i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2;
+                                EachResultList(6, stackB, userManager.GetCurrentGroove() + (day5.productSize + day6.productSize - 2) * GetActiveWorkshop(), false, (day7) =>
+                                {
+                                    if (highestResult.totalValue < day5.totalValue + day6.totalValue + day7.totalValue)
+                                    {
+                                        highestResult.salesData[0].productSize = day5.productSize;
+                                        for (int i = 0; i < day5.productSize; ++i)
+                                            highestResult.salesData[0].product[i] = day5.product[i];
+                                        for (int i = 0; i < day5.productSize; ++i)
+                                            highestResult.salesData[0].value[i] = day5.value[i];
+                                        highestResult.salesData[0].totalValue = day5.totalValue;
+                                        highestResult.salesData[1].productSize = day6.productSize;
+                                        for (int i = 0; i < day6.productSize; ++i)
+                                            highestResult.salesData[1].product[i] = day6.product[i];
+                                        for (int i = 0; i < day6.productSize; ++i)
+                                            highestResult.salesData[1].value[i] = day6.value[i];
+                                        highestResult.salesData[1].totalValue = day6.totalValue;
+                                        highestResult.salesData[2].productSize = day7.productSize;
+                                        for (int i = 0; i < day7.productSize; ++i)
+                                            highestResult.salesData[2].product[i] = day7.product[i];
+                                        for (int i = 0; i < day7.productSize; ++i)
+                                            highestResult.salesData[2].value[i] = day7.value[i];
+                                        highestResult.salesData[2].totalValue = day7.totalValue;
+                                        highestResult.totalValue = day5.totalValue + day6.totalValue + day7.totalValue;
+                                    }
+                                });
+                                stackB = null;
+                            });
+                            stackA = null;
+                        });
+                    }
+                    else if (count == 2)
+                    {/*
+                    Action[] thread = new Action[userManager.GetCPUThread()];
+                    for (int z = 0; z < thread.Length; ++z)
+                    {
+                        int x = z;
+                        thread[x] = () =>
+                        {
+                            for (int y = x; y < salesDataList.Count; y += userManager.GetCPUThread())
+                            {
+                                int[] stack = new int[productList.Count];
+                                for (int i = 0; i < salesDataList[y].productSize; ++i)
+                                    stack[salesDataList[y].product[i]] += (i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2);
+                                EachResultList(5, stack, userManager.GetCurrentGroove() + (salesDataList[y].productSize - 1) * GetActiveWorkshop(), false, (day6) =>
+                                {
+                                    if (threadResult[x].totalValue < salesDataList[y].totalValue + day6.totalValue)
+                                    {
+                                        threadResult[x].salesData[0].productSize = salesDataList[y].productSize;
+                                        for (int i = 0; i < salesDataList[y].productSize; ++i)
+                                            threadResult[x].salesData[0].product[i] = salesDataList[y].product[i];
+                                        for (int i = 0; i < salesDataList[y].productSize; ++i)
+                                            threadResult[x].salesData[0].value[i] = salesDataList[y].value[i];
+                                        threadResult[x].salesData[0].totalValue = salesDataList[y].totalValue;
+                                        threadResult[x].salesData[1].productSize = day6.productSize;
+                                        for (int i = 0; i < day6.productSize; ++i)
+                                            threadResult[x].salesData[1].product[i] = day6.product[i];
+                                        for (int i = 0; i < day6.productSize; ++i)
+                                            threadResult[x].salesData[1].value[i] = day6.value[i];
+                                        threadResult[x].salesData[1].totalValue = day6.totalValue;
+                                        threadResult[x].salesData[2].productSize = 0;
+                                        threadResult[x].salesData[2].totalValue = 0;
+                                        threadResult[x].totalValue = salesDataList[y].totalValue + day6.totalValue;
+                                    }
+                                });
+                                EachResultList(6, stack, userManager.GetCurrentGroove() + (salesDataList[y].productSize - 1) * GetActiveWorkshop(), false, (day7) =>
+                                {
+                                    if (threadResult[x].totalValue < salesDataList[y].totalValue + day7.totalValue)
+                                    {
+                                        threadResult[x].salesData[0].productSize = salesDataList[y].productSize;
+                                        for (int i = 0; i < salesDataList[y].productSize; ++i)
+                                            threadResult[x].salesData[0].product[i] = salesDataList[y].product[i];
+                                        for (int i = 0; i < salesDataList[y].productSize; ++i)
+                                            threadResult[x].salesData[0].value[i] = salesDataList[y].value[i];
+                                        threadResult[x].salesData[0].totalValue = salesDataList[y].totalValue;
+                                        threadResult[x].salesData[1].productSize = 0;
+                                        threadResult[x].salesData[1].totalValue = 0;
+                                        threadResult[x].salesData[2].productSize = day7.productSize;
+                                        for (int i = 0; i < day7.productSize; ++i)
+                                            threadResult[x].salesData[2].product[i] = day7.product[i];
+                                        for (int i = 0; i < day7.productSize; ++i)
+                                            threadResult[x].salesData[2].value[i] = day7.value[i];
+                                        threadResult[x].salesData[2].totalValue = day7.totalValue;
+                                        threadResult[x].totalValue = salesDataList[y].totalValue + day7.totalValue;
+                                    }
+                                });
+                                stack = null;
+                            }
+                        };
+                    }
+                    Parallel.Invoke(new ParallelOptions { MaxDegreeOfParallelism = userManager.GetCPUThread() }, thread);
+                    salesDataList = GetResultList(5, new int[productList.Count], userManager.GetCurrentGroove(), false);
+                    for (int z = 0; z < thread.Length; ++z)
+                    {
+                        int x = z;
+                        thread[x] = () =>
+                        {
+                            for (int y = x; y < salesDataList.Count; y += userManager.GetCPUThread())
+                            {
+                                int[] stack = new int[productList.Count];
+                                for (int i = 0; i < salesDataList[y].productSize; ++i)
+                                    stack[salesDataList[y].product[i]] += (i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2);
+                                EachResultList(6, stack, userManager.GetCurrentGroove() + (salesDataList[y].productSize - 1) * GetActiveWorkshop(), false, (day7) =>
+                                {
+                                    if (threadResult[x].totalValue < salesDataList[y].totalValue + day7.totalValue)
+                                    {
+                                        threadResult[x].salesData[0].productSize = salesDataList[y].productSize;
+                                        for (int i = 0; i < salesDataList[y].productSize; ++i)
+                                            threadResult[x].salesData[0].product[i] = salesDataList[y].product[i];
+                                        for (int i = 0; i < salesDataList[y].productSize; ++i)
+                                            threadResult[x].salesData[0].value[i] = salesDataList[y].value[i];
+                                        threadResult[x].salesData[0].totalValue = salesDataList[y].totalValue;
+                                        threadResult[x].salesData[1].productSize = 0;
+                                        threadResult[x].salesData[1].totalValue = 0;
+                                        threadResult[x].salesData[2].productSize = day7.productSize;
+                                        for (int i = 0; i < day7.productSize; ++i)
+                                            threadResult[x].salesData[2].product[i] = day7.product[i];
+                                        for (int i = 0; i < day7.productSize; ++i)
+                                            threadResult[x].salesData[2].value[i] = day7.value[i];
+                                        threadResult[x].salesData[2].totalValue = day7.totalValue;
+                                        threadResult[x].totalValue = salesDataList[y].totalValue + day7.totalValue;
+                                    }
+                                });
+                                stack = null;
+                            }
+                        };
+                    }
+                    Parallel.Invoke(thread);
+                    for (int i = 0; i < threadResult.Length; ++i)
+                    {
+                        if (highestResult.totalValue < threadResult[i].totalValue)
+                            highestResult = threadResult[i];
+                    }*/
+                        Parallel.ForEach(salesDataList, new ParallelOptions { MaxDegreeOfParallelism = userManager.GetCPUThread() }, day5 =>
+                        {
+                            int[] stack = new int[productList.Count];
+                            for (int i = 0; i < day5.productSize; ++i)
+                                stack[day5.product[i]] += (i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2);
+                            EachResultList(5, stack, userManager.GetCurrentGroove() + (day5.productSize - 1) * GetActiveWorkshop(), false, (day6) =>
+                            {
+                                if (highestResult.totalValue < day5.totalValue + day6.totalValue)
+                                {
+                                    highestResult.salesData[0].productSize = day5.productSize;
+                                    for (int i = 0; i < day5.productSize; ++i)
+                                        highestResult.salesData[0].product[i] = day5.product[i];
+                                    for (int i = 0; i < day5.productSize; ++i)
+                                        highestResult.salesData[0].value[i] = day5.value[i];
+                                    highestResult.salesData[0].totalValue = day5.totalValue;
+                                    highestResult.salesData[1].productSize = day6.productSize;
+                                    for (int i = 0; i < day6.productSize; ++i)
+                                        highestResult.salesData[1].product[i] = day6.product[i];
+                                    for (int i = 0; i < day6.productSize; ++i)
+                                        highestResult.salesData[1].value[i] = day6.value[i];
+                                    highestResult.salesData[1].totalValue = day6.totalValue;
+                                    highestResult.salesData[2].productSize = 0;
+                                    highestResult.salesData[2].totalValue = 0;
+                                    highestResult.totalValue = day5.totalValue + day6.totalValue;
+                                }
+                            });
+                            EachResultList(6, stack, userManager.GetCurrentGroove() + (day5.productSize - 1) * GetActiveWorkshop(), false, (day7) =>
+                            {
+                                if (highestResult.totalValue < day5.totalValue + day7.totalValue)
+                                {
+                                    highestResult.salesData[0].productSize = day5.productSize;
+                                    for (int i = 0; i < day5.productSize; ++i)
+                                        highestResult.salesData[0].product[i] = day5.product[i];
+                                    for (int i = 0; i < day5.productSize; ++i)
+                                        highestResult.salesData[0].value[i] = day5.value[i];
+                                    highestResult.salesData[0].totalValue = day5.totalValue;
+                                    highestResult.salesData[1].productSize = 0;
+                                    highestResult.salesData[1].totalValue = 0;
+                                    highestResult.salesData[2].productSize = day7.productSize;
+                                    for (int i = 0; i < day7.productSize; ++i)
+                                        highestResult.salesData[2].product[i] = day7.product[i];
+                                    for (int i = 0; i < day7.productSize; ++i)
+                                        highestResult.salesData[2].value[i] = day7.value[i];
+                                    highestResult.salesData[2].totalValue = day7.totalValue;
+                                    highestResult.totalValue = day5.totalValue + day7.totalValue;
+                                }
+                            });
+                            stack = null;
+                        });
+                        salesDataList = GetResultList(5, new int[productList.Count], userManager.GetCurrentGroove(), false);
+                        Parallel.ForEach(salesDataList, new ParallelOptions { MaxDegreeOfParallelism = userManager.GetCPUThread() }, day6 =>
+                        {
+                            int[] stack = new int[productList.Count];
+                            for (int i = 0; i < day6.productSize; ++i)
+                                stack[day6.product[i]] += (i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2);
+                            EachResultList(6, stack, userManager.GetCurrentGroove() + (day6.productSize - 1) * GetActiveWorkshop(), false, (day7) =>
+                            {
+                                if (highestResult.totalValue < day6.totalValue + day7.totalValue)
+                                {
+                                    highestResult.salesData[0].productSize = 0;
+                                    highestResult.salesData[0].totalValue = 0;
+                                    highestResult.salesData[1].productSize = day6.productSize;
+                                    for (int i = 0; i < day6.productSize; ++i)
+                                        highestResult.salesData[1].product[i] = day6.product[i];
+                                    for (int i = 0; i < day6.productSize; ++i)
+                                        highestResult.salesData[1].value[i] = day6.value[i];
+                                    highestResult.salesData[1].totalValue = day6.totalValue;
+                                    highestResult.salesData[2].productSize = day7.productSize;
+                                    for (int i = 0; i < day7.productSize; ++i)
+                                        highestResult.salesData[2].product[i] = day7.product[i];
+                                    for (int i = 0; i < day7.productSize; ++i)
+                                        highestResult.salesData[2].value[i] = day7.value[i];
+                                    highestResult.salesData[2].totalValue = day7.totalValue;
+                                    highestResult.totalValue = day6.totalValue + day7.totalValue;
+                                }
+                            });
+                            stack = null;
+                        });
+                    }
+                }
+                GameObject salesListObject = Instantiate(Resources.Load("Prefab/Workshop/SalesList"), scrollTopSalesList.content) as GameObject;
+                SalesList data = salesListObject.GetComponent<SalesList>();
+                data.rectSalesProductList.offsetMax = new Vector2(data.rectSalesProductList.offsetMax.x, 50 * (highestResult.salesData.Length - 1));
+                string productListString = "";
+                string productValueString = "";
+                for (int j = 0; j < highestResult.salesData.Length; ++j)
+                {
+                    if (highestResult.salesData[j].productSize > 0)
+                    {
+                        productValueString += $"{highestResult.salesData[j].totalValue * GetActiveWorkshop()} | {highestResult.salesData[j].totalValue} = ";
+                        for (int i = 0; i < highestResult.salesData[j].productSize; ++i)
+                        {
+                            if (i > 0)
+                            {
+                                productListString += " + ";
+                                productValueString += " + ";
+                            }
+                            productListString += $"<sprite={highestResult.salesData[j].product[i]}> {resourceManager.GetProductName(highestResult.salesData[j].product[i])}";
+                            productValueString += highestResult.salesData[j].value[i].ToString();
+                        }
+                    }
+                    productListString += "\n";
+                    productValueString += "\n";
+                }
+                productListString += " ";
+                productValueString += $"{highestResult.totalValue * GetActiveWorkshop()} | {(highestResult.totalValue + totalValue) * GetActiveWorkshop()}";
+                data.textSalesProductList.text = productListString;
+                data.textSalesValue.text = productValueString;
+                salesList.Add(salesListObject);
             }
-            SalesDataList.Clear();
-            SalesDataList = null;
         });
         btnNowSales.onClick.AddListener(() =>
         {
             UserManager userManager = UserManager.instance;
             if (userManager.GetSalesData(cycle).product != null)
             {
-                for (int i = 0; i < userManager.GetSalesData(cycle).product.Length; ++i)
+                for (int i = 0; i < userManager.GetSalesData(cycle).productSize; ++i)
                 {
                     int value = (i == 0 ? -1 : -2) * GetActiveWorkshop();
                     for (int j = cycle + 1; j < 7; ++j)
@@ -457,7 +1087,79 @@ public class Workshop : MonoBehaviour
             userManager.SetSalesData(cycle, new SalesData());
             nowSalesData.textSalesProductList.text = "";
             nowSalesData.textSalesValue.text = "";
-            CalculateAllData();
+            CalculateAllData(false);
+        });
+        textCPUThreadMaxValue.text = Environment.ProcessorCount.ToString();
+        inputCPUThread.text = userManager.GetCPUThread().ToString();
+        inputCPUThread.onEndEdit.AddListener((value) =>
+        {
+            if (int.TryParse(value, out int result))
+            {
+                if (result <= 0) result = 1;
+                if (result > Environment.ProcessorCount) result = Environment.ProcessorCount;
+                userManager.SetCPUThread(result);
+            }
+        });
+        toggleGPU.isOn = userManager.IsGPUCalculate();
+        toggleGPU.onValueChanged.AddListener((value) =>
+        {
+            userManager.SetGPUCalculate(value);
+        });
+        btnCrimeTime.onClick.AddListener(() =>
+        {
+            UserManager userManager = UserManager.instance;
+            for (int k = 0; k < 6; ++k)
+            {
+                if (userManager.GetSalesData(k).product != null)
+                {
+                        for (int i = 0; i < userManager.GetSalesData(k).productSize; ++i)
+                        {
+                            int value = (i == 0 ? -1 : -2) * GetActiveWorkshop();
+                            for (int j = k + 1; j < 7; ++j)
+                                productList[userManager.GetSalesData(k).product[i]].AddSupply(j, value);
+                        }
+                }
+            }
+            userManager.SetSalesData(0, new SalesData());
+            userManager.SetSalesData(2, new SalesData());
+            userManager.SetSalesData(4, new SalesData());
+            userManager.SetSalesData(5, new SalesData());
+            userManager.SetSalesData(6, new SalesData());
+            SalesData day2 = new SalesData();
+            day2.productSize = 6;
+            day2.product[0] = 13;
+            day2.product[1] = 9;
+            day2.product[2] = 25;
+            day2.product[3] = 3;
+            day2.product[4] = 32;
+            day2.product[5] = 35;
+            for (int i = 0; i < 6; ++i)
+            {
+                day2.value[i] = GetProductValue(day2.product[i], i, 1, 0, 0);
+                day2.totalValue += day2.value[i];
+                int value = (i == 0 ? 1 : 2) * GetActiveWorkshop();
+                for (int j = 2; j < 7; ++j)
+                    productList[day2.product[i]].AddSupply(j, value);
+            }
+            userManager.SetSalesData(1, day2);
+            SalesData day4 = new SalesData();
+            day4.productSize = 6;
+            day4.product[0] = 13;
+            day4.product[1] = 9;
+            day4.product[2] = 25;
+            day4.product[3] = 3;
+            day4.product[4] = 32;
+            day4.product[5] = 35;
+            for (int i = 0; i < 6; ++i)
+            {
+                day4.value[i] = GetProductValue(day4.product[i], i, 3, 15, 0);
+                day4.totalValue += day4.value[i];
+                int value = (i == 0 ? 1 : 2) * GetActiveWorkshop();
+                for (int j = 4; j < 7; ++j)
+                    productList[day4.product[i]].AddSupply(j, value);
+            }
+            userManager.SetSalesData(3, day4);
+            CalculateAllData(true);
         });
         ApplyLanguage();
     }
@@ -504,6 +1206,62 @@ public class Workshop : MonoBehaviour
         }
     }
 
+    float GetPopularityAndSupplyValue(int pop, int sup)
+    {
+        switch (pop)
+        {
+        case 1:
+            {
+                switch (sup)
+                {
+                case 1: return 2.24f;
+                case 2: return 1.82f;
+                case 3: return 1.4f;
+                case 4: return 1.12f;
+                case 5: return 0.84f;
+                default: return 0;
+                }
+            }
+        case 2:
+            {
+                switch (sup)
+                {
+                case 1: return 1.92f;
+                case 2: return 1.56f;
+                case 3: return 1.2f;
+                case 4: return 0.96f;
+                case 5: return 0.72f;
+                default: return 0;
+                }
+            }
+        case 3:
+            {
+                switch (sup)
+                {
+                case 1: return 1.6f;
+                case 2: return 1.3f;
+                case 3: return 1;
+                case 4: return 0.8f;
+                case 5: return 0.6f;
+                default: return 0;
+                }
+            }
+        case 4:
+            {
+                switch (sup)
+                {
+                case 1: return 1.28f;
+                case 2: return 1.04f;
+                case 3: return 0.8f;
+                case 4: return 0.64f;
+                case 5: return 0.48f;
+                default: return 0;
+                }
+            }
+        default: return 0;
+        }
+    }
+
     float GetWorkshopTierValue(int tier)
     {
         switch (tier)
@@ -515,16 +1273,17 @@ public class Workshop : MonoBehaviour
         }
     }
 
-    int GetProductValue(int _index, int _step, int _cycle, int _groove)
+    int GetProductValue(int _index, int _step, int _cycle, int _groove, int _stack)
     {
         UserManager userManager = UserManager.instance;
-        int nowGroove = (_groove + GetActiveWorkshop() * _step);
+        float nowGroove = (_groove + GetActiveWorkshop() * _step);
+        if (nowGroove > userManager.GetMaxGroove())
+            nowGroove = userManager.GetMaxGroove();
         return (_step > 0 ? 2 : 1) * 
-            Mathf.FloorToInt(GetPopularityValue(productList[_index].GetPopularity(_cycle)) *
-            GetSupplyValue(productList[_index].GetSupply(_cycle)) * 
+            Mathf.FloorToInt(GetPopularityAndSupplyValue(productList[_index].GetPopularity(_cycle), productList[_index].GetSupply(_cycle, _stack)) * 
             Mathf.FloorToInt(productList[_index].GetValue() *
             GetWorkshopTierValue(GetHighestWorkshopTier()) * 
-            (1 + (((nowGroove < userManager.GetMaxGroove()) ? nowGroove : userManager.GetMaxGroove()) / 100.0f))));
+            (1 + nowGroove / 100)));
     }
 
     public void SetPacketData(byte[] data)
@@ -603,10 +1362,15 @@ public class Workshop : MonoBehaviour
             }
         case 7:
             {
-                dropCycle.captionText.text = resourceManager.GetText(27);
+                dropCycle.captionText.text = resourceManager.GetText(53);
                 break;
             }
         case 8:
+            {
+                dropCycle.captionText.text = resourceManager.GetText(27);
+                break;
+            }
+        case 9:
             {
                 dropCycle.captionText.text = resourceManager.GetText(31);
                 break;
@@ -631,10 +1395,15 @@ public class Workshop : MonoBehaviour
                 }
             case 7:
                 {
-                    form.text = resourceManager.GetText(27);
+                    form.text = resourceManager.GetText(53);
                     break;
                 }
             case 8:
+                {
+                    form.text = resourceManager.GetText(27);
+                    break;
+                }
+            case 9:
                 {
                     form.text = resourceManager.GetText(31);
                     break;
@@ -653,13 +1422,1667 @@ public class Workshop : MonoBehaviour
         textTotalValue.text = $"{resourceManager.GetText(50)} : {totalValue * GetActiveWorkshop()}";
         textExpectedValue.text = resourceManager.GetText(14);
         textCalculate.text = resourceManager.GetText(15);
+        textRangeCycle.text = resourceManager.GetText(56);
+        textCPUThreadMax.text = resourceManager.GetText(54);
+        textCPUThread.text = resourceManager.GetText(55);
+        textGPU.text = resourceManager.GetText(57);
+        textCrimeTime.text = resourceManager.GetText(58);
         productList.ForEach((product) =>
         {
             product.ApplyLanguage(cycle);
         });
     }
 
-    List<SalesData> GetResultList()
+    List<SalesData> GetResultList(int _cycle, int[] _stack, int _groove, bool _hasPeak)
+    {
+        int[] stack = new int[_stack.Length];
+        if (_cycle > 7)
+            --_cycle;
+        List<SalesData> SalesDataList = new List<SalesData>();
+        SalesData salesdata;
+        int checker;
+        bool isPeak = false;
+        bool isUsed = false;
+        UserManager userManager = UserManager.instance;
+        if (userManager.GetCurrentGroove() < userManager.GetMaxGroove() && userManager.GetGroovePriority())
+        {
+            if (userManager.GetCurrentGroove() + (GetActiveWorkshop() * 6) <= userManager.GetMaxGroove() + (GetActiveWorkshop() - 1))
+            {
+                for (int a = 0; a < productList.Count; ++a)
+                {
+                    if (productList[a].IsActive() && productList[a].GetTime() == 4)
+                    {
+                        for (int b = 0; b < productList.Count; ++b)
+                        {
+                            if (a != b && productList[b].IsActive() && productList[b].GetTime() == 4 && ((productList[a].GetCategory() & productList[b].GetCategory()) > 0))
+                            {
+                                for (int c = 0; c < productList.Count; ++c)
+                                {
+                                    if (b != c && productList[c].IsActive() && productList[c].GetTime() == 4 && ((productList[b].GetCategory() & productList[c].GetCategory()) > 0))
+                                    {
+                                        for (int d = 0; d < productList.Count; ++d)
+                                        {
+                                            if (c != d && productList[d].IsActive() && productList[d].GetTime() == 4 && ((productList[c].GetCategory() & productList[d].GetCategory()) > 0))
+                                            {
+                                                for (int e = 0; e < productList.Count; ++e)
+                                                {
+                                                    if (d != e && productList[e].IsActive() && productList[e].GetTime() == 4 && ((productList[d].GetCategory() & productList[e].GetCategory()) > 0))
+                                                    {
+                                                        for (int f = 0; f < productList.Count; ++f)
+                                                        {
+                                                            if (e != f && productList[f].IsActive() && productList[f].GetTime() == 4 && ((productList[e].GetCategory() & productList[f].GetCategory()) > 0))
+                                                            {
+                                                                salesdata = new SalesData();
+                                                                salesdata.productSize = 6;
+                                                                salesdata.product[0] = a;
+                                                                salesdata.product[1] = b;
+                                                                salesdata.product[2] = c;
+                                                                salesdata.product[3] = d;
+                                                                salesdata.product[4] = e;
+                                                                salesdata.product[5] = f;
+                                                                for (int i = 0; i < stack.Length; ++i)
+                                                                    stack[i] = _stack[i];
+                                                                isPeak = false;
+                                                                isUsed = false;
+                                                                salesdata.totalValue = 0;
+                                                                for (int i = 0; i < 6; ++i)
+                                                                {
+                                                                    salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                    salesdata.totalValue += salesdata.value[i];
+                                                                    stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                    if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                        isPeak = true;
+                                                                    if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                        isUsed = true;
+                                                                }
+                                                                if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                    SalesDataList.Add(salesdata);
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                for (int a = 0; a < productList.Count; ++a)
+                {
+                    if (productList[a].IsActive() && productList[a].GetTime() == 4)
+                    {
+                        if (userManager.GetCurrentGroove() + GetActiveWorkshop() < userManager.GetMaxGroove())
+                        {
+                            for (int b = 0; b < productList.Count; ++b)
+                            {
+                                if (a != b && productList[b].IsActive() && productList[b].GetTime() == 4 && ((productList[a].GetCategory() & productList[b].GetCategory()) > 0))
+                                {
+                                    if (userManager.GetCurrentGroove() + GetActiveWorkshop() * 2 < userManager.GetMaxGroove())
+                                    {
+                                        for (int c = 0; c < productList.Count; ++c)
+                                        {
+                                            if (b != c && productList[c].IsActive() && productList[c].GetTime() == 4 && ((productList[b].GetCategory() & productList[c].GetCategory()) > 0))
+                                            {
+                                                if (userManager.GetCurrentGroove() + GetActiveWorkshop() * 3 < userManager.GetMaxGroove())
+                                                {
+                                                    for (int d = 0; d < productList.Count; ++d)
+                                                    {
+                                                        if (c != d && productList[d].IsActive() && productList[d].GetTime() == 4 && ((productList[c].GetCategory() & productList[d].GetCategory()) > 0))
+                                                        {
+                                                            if (userManager.GetCurrentGroove() + GetActiveWorkshop() * 4 < userManager.GetMaxGroove())
+                                                            {
+                                                                for (int e = 0; e < productList.Count; ++e)
+                                                                {
+                                                                    if (d != e && productList[e].IsActive() && productList[e].GetTime() == 4 && ((productList[d].GetCategory() & productList[e].GetCategory()) > 0))
+                                                                    {
+                                                                        for (int f = 0; f < productList.Count; ++f)
+                                                                        {
+                                                                            if (e != f && productList[f].IsActive() && productList[f].GetTime() == 4 && ((productList[e].GetCategory() & productList[f].GetCategory()) > 0))
+                                                                            {
+                                                                                salesdata = new SalesData();
+                                                                                salesdata.productSize = 6;
+                                                                                salesdata.product[0] = a;
+                                                                                salesdata.product[1] = b;
+                                                                                salesdata.product[2] = c;
+                                                                                salesdata.product[3] = d;
+                                                                                salesdata.product[4] = e;
+                                                                                salesdata.product[5] = f;
+                                                                                for (int i = 0; i < stack.Length; ++i)
+                                                                                    stack[i] = _stack[i];
+                                                                                isPeak = false;
+                                                                                isUsed = false;
+                                                                                salesdata.totalValue = 0;
+                                                                                for (int i = 0; i < 6; ++i)
+                                                                                {
+                                                                                    salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                    salesdata.totalValue += salesdata.value[i];
+                                                                                    stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                    if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                        isPeak = true;
+                                                                                    if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                        isUsed = true;
+                                                                                }
+                                                                                if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                        SalesDataList.Add(salesdata);
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                            else
+                                                            {
+                                                                for (int e = 0; e < productList.Count; ++e)
+                                                                {
+                                                                    if (d != e && productList[e].IsActive() && ((productList[d].GetCategory() & productList[e].GetCategory()) > 0))
+                                                                    {
+                                                                        checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime() + productList[e].GetTime();
+                                                                        if (checker <= 24)
+                                                                        {
+                                                                            if (checker <= 20)
+                                                                            {
+                                                                                for (int f = 0; f < productList.Count; ++f)
+                                                                                {
+                                                                                    if (e != f && productList[f].IsActive() && ((productList[e].GetCategory() & productList[f].GetCategory()) > 0))
+                                                                                    {
+                                                                                        checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime() + productList[e].GetTime() + productList[f].GetTime();
+                                                                                        if (checker <= 24)
+                                                                                        {
+                                                                                            salesdata = new SalesData();
+                                                                                            salesdata.productSize = 6;
+                                                                                            salesdata.product[0] = a;
+                                                                                            salesdata.product[1] = b;
+                                                                                            salesdata.product[2] = c;
+                                                                                            salesdata.product[3] = d;
+                                                                                            salesdata.product[4] = e;
+                                                                                            salesdata.product[5] = f;
+                                                                                            for (int i = 0; i < stack.Length; ++i)
+                                                                                                stack[i] = _stack[i];
+                                                                                            isPeak = false;
+                                                                                            isUsed = false;
+                                                                                            salesdata.totalValue = 0;
+                                                                                            for (int i = 0; i < 6; ++i)
+                                                                                            {
+                                                                                                salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                                salesdata.totalValue += salesdata.value[i];
+                                                                                                stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                                if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                                    isPeak = true;
+                                                                                                if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                                    isUsed = true;
+                                                                                            }
+                                                                                            if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                                SalesDataList.Add(salesdata);
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                salesdata = new SalesData();
+                                                                                salesdata.productSize = 5;
+                                                                                salesdata.product[0] = a;
+                                                                                salesdata.product[1] = b;
+                                                                                salesdata.product[2] = c;
+                                                                                salesdata.product[3] = d;
+                                                                                salesdata.product[4] = e;
+                                                                                for (int i = 0; i < stack.Length; ++i)
+                                                                                    stack[i] = _stack[i];
+                                                                                isPeak = false;
+                                                                                isUsed = false;
+                                                                                salesdata.totalValue = 0;
+                                                                                for (int i = 0; i < 5; ++i)
+                                                                                {
+                                                                                    salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                    salesdata.totalValue += salesdata.value[i];
+                                                                                    stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                    if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                        isPeak = true;
+                                                                                    if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                        isUsed = true;
+                                                                                }
+                                                                                if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                    SalesDataList.Add(salesdata);
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    for (int d = 0; d < productList.Count; ++d)
+                                                    {
+                                                        if (c != d && productList[d].IsActive() && ((productList[c].GetCategory() & productList[d].GetCategory()) > 0))
+                                                        {
+                                                            checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime();
+                                                            if (checker <= 24)
+                                                            {
+                                                                if (checker <= 20)
+                                                                {
+                                                                    for (int e = 0; e < productList.Count; ++e)
+                                                                    {
+                                                                        if (d != e && productList[e].IsActive() && ((productList[d].GetCategory() & productList[e].GetCategory()) > 0))
+                                                                        {
+                                                                            checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime() + productList[e].GetTime();
+                                                                            if (checker <= 24)
+                                                                            {
+                                                                                if (checker <= 20)
+                                                                                {
+                                                                                    for (int f = 0; f < productList.Count; ++f)
+                                                                                    {
+                                                                                        if (e != f && productList[f].IsActive() && ((productList[e].GetCategory() & productList[f].GetCategory()) > 0))
+                                                                                        {
+                                                                                            checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime() + productList[e].GetTime() + productList[f].GetTime();
+                                                                                            if (checker <= 24)
+                                                                                            {
+                                                                                                salesdata = new SalesData();
+                                                                                                salesdata.productSize = 6;
+                                                                                                salesdata.product[0] = a;
+                                                                                                salesdata.product[1] = b;
+                                                                                                salesdata.product[2] = c;
+                                                                                                salesdata.product[3] = d;
+                                                                                                salesdata.product[4] = e;
+                                                                                                salesdata.product[5] = f;
+                                                                                                for (int i = 0; i < stack.Length; ++i)
+                                                                                                    stack[i] = _stack[i];
+                                                                                                isPeak = false;
+                                                                                                isUsed = false;
+                                                                                                salesdata.totalValue = 0;
+                                                                                                for (int i = 0; i < 6; ++i)
+                                                                                                {
+                                                                                                    salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                                    salesdata.totalValue += salesdata.value[i];
+                                                                                                    stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                                    if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                                        isPeak = true;
+                                                                                                    if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                                        isUsed = true;
+                                                                                                }
+                                                                                                if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                                    SalesDataList.Add(salesdata);
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                                    salesdata = new SalesData();
+                                                                                    salesdata.productSize = 5;
+                                                                                    salesdata.product[0] = a;
+                                                                                    salesdata.product[1] = b;
+                                                                                    salesdata.product[2] = c;
+                                                                                    salesdata.product[3] = d;
+                                                                                    salesdata.product[4] = e;
+                                                                                    for (int i = 0; i < stack.Length; ++i)
+                                                                                        stack[i] = _stack[i];
+                                                                                    isPeak = false;
+                                                                                    isUsed = false;
+                                                                                    salesdata.totalValue = 0;
+                                                                                    for (int i = 0; i < 5; ++i)
+                                                                                    {
+                                                                                        salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                        salesdata.totalValue += salesdata.value[i];
+                                                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                            isPeak = true;
+                                                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                            isUsed = true;
+                                                                                    }
+                                                                                    if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                        SalesDataList.Add(salesdata);
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    salesdata = new SalesData();
+                                                                    salesdata.productSize = 4;
+                                                                    salesdata.product[0] = a;
+                                                                    salesdata.product[1] = b;
+                                                                    salesdata.product[2] = c;
+                                                                    salesdata.product[3] = d;
+                                                                    for (int i = 0; i < stack.Length; ++i)
+                                                                        stack[i] = _stack[i];
+                                                                    isPeak = false;
+                                                                    isUsed = false;
+                                                                    salesdata.totalValue = 0;
+                                                                    for (int i = 0; i < 4; ++i)
+                                                                    {
+                                                                        salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                        salesdata.totalValue += salesdata.value[i];
+                                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                            isPeak = true;
+                                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                            isUsed = true;
+                                                                    }
+                                                                    if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                        SalesDataList.Add(salesdata);
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        for (int c = 0; c < productList.Count; ++c)
+                                        {
+                                            if (b != c && productList[c].IsActive() && ((productList[b].GetCategory() & productList[c].GetCategory()) > 0))
+                                            {
+                                                checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime();
+                                                if (checker <= 24)
+                                                {
+                                                    if (checker <= 20)
+                                                    {
+                                                        for (int d = 0; d < productList.Count; ++d)
+                                                        {
+                                                            if (c != d && productList[d].IsActive() && ((productList[c].GetCategory() & productList[d].GetCategory()) > 0))
+                                                            {
+                                                                checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime();
+                                                                if (checker <= 24)
+                                                                {
+                                                                    if (checker <= 20)
+                                                                    {
+                                                                        for (int e = 0; e < productList.Count; ++e)
+                                                                        {
+                                                                            if (d != e && productList[e].IsActive() && ((productList[d].GetCategory() & productList[e].GetCategory()) > 0))
+                                                                            {
+                                                                                checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime() + productList[e].GetTime();
+                                                                                if (checker <= 24)
+                                                                                {
+                                                                                    if (checker <= 20)
+                                                                                    {
+                                                                                        for (int f = 0; f < productList.Count; ++f)
+                                                                                        {
+                                                                                            if (e != f && productList[f].IsActive() && ((productList[e].GetCategory() & productList[f].GetCategory()) > 0))
+                                                                                            {
+                                                                                                checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime() + productList[e].GetTime() + productList[f].GetTime();
+                                                                                                if (checker <= 24)
+                                                                                                {
+                                                                                                    salesdata = new SalesData();
+                                                                                                    salesdata.productSize = 6;
+                                                                                                    salesdata.product[0] = a;
+                                                                                                    salesdata.product[1] = b;
+                                                                                                    salesdata.product[2] = c;
+                                                                                                    salesdata.product[3] = d;
+                                                                                                    salesdata.product[4] = e;
+                                                                                                    salesdata.product[5] = f;
+                                                                                                    for (int i = 0; i < stack.Length; ++i)
+                                                                                                        stack[i] = _stack[i];
+                                                                                                    isPeak = false;
+                                                                                                    isUsed = false;
+                                                                                                    salesdata.totalValue = 0;
+                                                                                                    for (int i = 0; i < 6; ++i)
+                                                                                                    {
+                                                                                                        salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                                        salesdata.totalValue += salesdata.value[i];
+                                                                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                                            isPeak = true;
+                                                                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                                            isUsed = true;
+                                                                                                    }
+                                                                                                    if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                                        SalesDataList.Add(salesdata);
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                    else
+                                                                                    {
+                                                                                        salesdata = new SalesData();
+                                                                                        salesdata.productSize = 5;
+                                                                                        salesdata.product[0] = a;
+                                                                                        salesdata.product[1] = b;
+                                                                                        salesdata.product[2] = c;
+                                                                                        salesdata.product[3] = d;
+                                                                                        salesdata.product[4] = e;
+                                                                                        for (int i = 0; i < stack.Length; ++i)
+                                                                                            stack[i] = _stack[i];
+                                                                                        isPeak = false;
+                                                                                        isUsed = false;
+                                                                                        salesdata.totalValue = 0;
+                                                                                        for (int i = 0; i < 5; ++i)
+                                                                                        {
+                                                                                            salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                            salesdata.totalValue += salesdata.value[i];
+                                                                                            stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                            if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                                isPeak = true;
+                                                                                            if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                                isUsed = true;
+                                                                                        }
+                                                                                        if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                            SalesDataList.Add(salesdata);
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        salesdata = new SalesData();
+                                                                        salesdata.productSize = 4;
+                                                                        salesdata.product[0] = a;
+                                                                        salesdata.product[1] = b;
+                                                                        salesdata.product[2] = c;
+                                                                        salesdata.product[3] = d;
+                                                                        for (int i = 0; i < stack.Length; ++i)
+                                                                            stack[i] = _stack[i];
+                                                                        isPeak = false;
+                                                                        isUsed = false;
+                                                                        salesdata.totalValue = 0;
+                                                                        for (int i = 0; i < 4; ++i)
+                                                                        {
+                                                                            salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                            salesdata.totalValue += salesdata.value[i];
+                                                                            stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                            if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                isPeak = true;
+                                                                            if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                isUsed = true;
+                                                                        }
+                                                                        if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                            SalesDataList.Add(salesdata);
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        salesdata = new SalesData();
+                                                        salesdata.productSize = 3;
+                                                        salesdata.product[0] = a;
+                                                        salesdata.product[1] = b;
+                                                        salesdata.product[2] = c;
+                                                        for (int i = 0; i < stack.Length; ++i)
+                                                            stack[i] = _stack[i];
+                                                        isPeak = false;
+                                                        isUsed = false;
+                                                        salesdata.totalValue = 0;
+                                                        for (int i = 0; i < 3; ++i)
+                                                        {
+                                                            salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                            salesdata.totalValue += salesdata.value[i];
+                                                            stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                            if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                isPeak = true;
+                                                            if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                isUsed = true;
+                                                        }
+                                                        if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                            SalesDataList.Add(salesdata);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            for (int b = 0; b < productList.Count; ++b)
+                            {
+                                if (a != b && productList[b].IsActive() && ((productList[a].GetCategory() & productList[b].GetCategory()) > 0))
+                                {
+                                    for (int c = 0; c < productList.Count; ++c)
+                                    {
+                                        if (b != c && productList[c].IsActive() && ((productList[b].GetCategory() & productList[c].GetCategory()) > 0))
+                                        {
+                                            checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime();
+                                            if (checker <= 24)
+                                            {
+                                                if (checker <= 20)
+                                                {
+                                                    for (int d = 0; d < productList.Count; ++d)
+                                                    {
+                                                        if (c != d && productList[d].IsActive() && ((productList[c].GetCategory() & productList[d].GetCategory()) > 0))
+                                                        {
+                                                            checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime();
+                                                            if (checker <= 24)
+                                                            {
+                                                                if (checker <= 20)
+                                                                {
+                                                                    for (int e = 0; e < productList.Count; ++e)
+                                                                    {
+                                                                        if (d != e && productList[e].IsActive() && ((productList[d].GetCategory() & productList[e].GetCategory()) > 0))
+                                                                        {
+                                                                            checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime() + productList[e].GetTime();
+                                                                            if (checker <= 24)
+                                                                            {
+                                                                                if (checker <= 20)
+                                                                                {
+                                                                                    for (int f = 0; f < productList.Count; ++f)
+                                                                                    {
+                                                                                        if (e != f && productList[f].IsActive() && ((productList[e].GetCategory() & productList[f].GetCategory()) > 0))
+                                                                                        {
+                                                                                            checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime() + productList[e].GetTime() + productList[f].GetTime();
+                                                                                            if (checker <= 24)
+                                                                                            {
+                                                                                                salesdata = new SalesData();
+                                                                                                salesdata.productSize = 6;
+                                                                                                salesdata.product[0] = a;
+                                                                                                salesdata.product[1] = b;
+                                                                                                salesdata.product[2] = c;
+                                                                                                salesdata.product[3] = d;
+                                                                                                salesdata.product[4] = e;
+                                                                                                salesdata.product[5] = f;
+                                                                                                for (int i = 0; i < stack.Length; ++i)
+                                                                                                    stack[i] = _stack[i];
+                                                                                                isPeak = false;
+                                                                                                isUsed = false;
+                                                                                                salesdata.totalValue = 0;
+                                                                                                for (int i = 0; i < 6; ++i)
+                                                                                                {
+                                                                                                    salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                                    salesdata.totalValue += salesdata.value[i];
+                                                                                                    stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                                    if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                                        isPeak = true;
+                                                                                                    if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                                        isUsed = true;
+                                                                                                }
+                                                                                                if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                                    SalesDataList.Add(salesdata);
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                                    salesdata = new SalesData();
+                                                                                    salesdata.productSize = 5;
+                                                                                    salesdata.product[0] = a;
+                                                                                    salesdata.product[1] = b;
+                                                                                    salesdata.product[2] = c;
+                                                                                    salesdata.product[3] = d;
+                                                                                    salesdata.product[4] = e;
+                                                                                    for (int i = 0; i < stack.Length; ++i)
+                                                                                        stack[i] = _stack[i];
+                                                                                    isPeak = false;
+                                                                                    isUsed = false;
+                                                                                    salesdata.totalValue = 0;
+                                                                                    for (int i = 0; i < 5; ++i)
+                                                                                    {
+                                                                                        salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                        salesdata.totalValue += salesdata.value[i];
+                                                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                            isPeak = true;
+                                                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                            isUsed = true;
+                                                                                    }
+                                                                                    if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                        SalesDataList.Add(salesdata);
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    salesdata = new SalesData();
+                                                                    salesdata.productSize = 4;
+                                                                    salesdata.product[0] = a;
+                                                                    salesdata.product[1] = b;
+                                                                    salesdata.product[2] = c;
+                                                                    salesdata.product[3] = d;
+                                                                    for (int i = 0; i < stack.Length; ++i)
+                                                                        stack[i] = _stack[i];
+                                                                    isPeak = false;
+                                                                    isUsed = false;
+                                                                    salesdata.totalValue = 0;
+                                                                    for (int i = 0; i < 4; ++i)
+                                                                    {
+                                                                        salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                        salesdata.totalValue += salesdata.value[i];
+                                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                            isPeak = true;
+                                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                            isUsed = true;
+                                                                    }
+                                                                    if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                        SalesDataList.Add(salesdata);
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    salesdata = new SalesData();
+                                                    salesdata.productSize = 3;
+                                                    salesdata.product[0] = a;
+                                                    salesdata.product[1] = b;
+                                                    salesdata.product[2] = c;
+                                                    for (int i = 0; i < stack.Length; ++i)
+                                                        stack[i] = _stack[i];
+                                                    isPeak = false;
+                                                    isUsed = false;
+                                                    salesdata.totalValue = 0;
+                                                    for (int i = 0; i < 3; ++i)
+                                                    {
+                                                        salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                        salesdata.totalValue += salesdata.value[i];
+                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                            isPeak = true;
+                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                            isUsed = true;
+                                                    }
+                                                    if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                        SalesDataList.Add(salesdata);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (int a = 0; a < productList.Count; ++a)
+            {
+                if (productList[a].IsActive())
+                {
+                    for (int b = 0; b < productList.Count; ++b)
+                    {
+                        if (a != b && productList[b].IsActive() && ((productList[a].GetCategory() & productList[b].GetCategory()) > 0))
+                        {
+                            for (int c = 0; c < productList.Count; ++c)
+                            {
+                                if (b != c && productList[c].IsActive() && ((productList[b].GetCategory() & productList[c].GetCategory()) > 0))
+                                {
+                                    checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime();
+                                    if (checker <= 24)
+                                    {
+                                        if (checker <= 20)
+                                        {
+                                            for (int d = 0; d < productList.Count; ++d)
+                                            {
+                                                if (c != d && productList[d].IsActive() && ((productList[c].GetCategory() & productList[d].GetCategory()) > 0))
+                                                {
+                                                    checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime();
+                                                    if (checker <= 24)
+                                                    {
+                                                        if (checker <= 20)
+                                                        {
+                                                            for (int e = 0; e < productList.Count; ++e)
+                                                            {
+                                                                if (d != e && productList[e].IsActive() && ((productList[d].GetCategory() & productList[e].GetCategory()) > 0))
+                                                                {
+                                                                    checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime() + productList[e].GetTime();
+                                                                    if (checker <= 24)
+                                                                    {
+                                                                        if (checker <= 20)
+                                                                        {
+                                                                            for (int f = 0; f < productList.Count; ++f)
+                                                                            {
+                                                                                if (e != f && productList[f].IsActive() && ((productList[e].GetCategory() & productList[f].GetCategory()) > 0))
+                                                                                {
+                                                                                    checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime() + productList[e].GetTime() + productList[f].GetTime();
+                                                                                    if (checker <= 24)
+                                                                                    {
+                                                                                        salesdata = new SalesData();
+                                                                                        salesdata.productSize = 6;
+                                                                                        salesdata.product[0] = a;
+                                                                                        salesdata.product[1] = b;
+                                                                                        salesdata.product[2] = c;
+                                                                                        salesdata.product[3] = d;
+                                                                                        salesdata.product[4] = e;
+                                                                                        salesdata.product[5] = f;
+                                                                                        for (int i = 0; i < stack.Length; ++i)
+                                                                                            stack[i] = _stack[i];
+                                                                                        isPeak = false;
+                                                                                        isUsed = false;
+                                                                                        salesdata.totalValue = 0;
+                                                                                        for (int i = 0; i < 6; ++i)
+                                                                                        {
+                                                                                            salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                            salesdata.totalValue += salesdata.value[i];
+                                                                                            stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                            if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                                isPeak = true;
+                                                                                            if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                                isUsed = true;
+                                                                                        }
+                                                                                        if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                            SalesDataList.Add(salesdata);
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            salesdata = new SalesData();
+                                                                            salesdata.productSize = 5;
+                                                                            salesdata.product[0] = a;
+                                                                            salesdata.product[1] = b;
+                                                                            salesdata.product[2] = c;
+                                                                            salesdata.product[3] = d;
+                                                                            salesdata.product[4] = e;
+                                                                            for (int i = 0; i < stack.Length; ++i)
+                                                                                stack[i] = _stack[i];
+                                                                            isPeak = false;
+                                                                            isUsed = false;
+                                                                            salesdata.totalValue = 0;
+                                                                            for (int i = 0; i < 5; ++i)
+                                                                            {
+                                                                                salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                salesdata.totalValue += salesdata.value[i];
+                                                                                stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                    isPeak = true;
+                                                                                if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                    isUsed = true;
+                                                                            }
+                                                                            if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                SalesDataList.Add(salesdata);
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            salesdata = new SalesData();
+                                                            salesdata.productSize = 4;
+                                                            salesdata.product[0] = a;
+                                                            salesdata.product[1] = b;
+                                                            salesdata.product[2] = c;
+                                                            salesdata.product[3] = d;
+                                                            for (int i = 0; i < stack.Length; ++i)
+                                                                stack[i] = _stack[i];
+                                                            isPeak = false;
+                                                            isUsed = false;
+                                                            salesdata.totalValue = 0;
+                                                            for (int i = 0; i < 4; ++i)
+                                                            {
+                                                                salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                salesdata.totalValue += salesdata.value[i];
+                                                                stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                    isPeak = true;
+                                                                if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                    isUsed = true;
+                                                            }
+                                                            if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                SalesDataList.Add(salesdata);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            salesdata = new SalesData();
+                                            salesdata.productSize = 3;
+                                            salesdata.product[0] = a;
+                                            salesdata.product[1] = b;
+                                            salesdata.product[2] = c;
+                                            for (int i = 0; i < stack.Length; ++i)
+                                                stack[i] = _stack[i];
+                                            isPeak = false;
+                                            isUsed = false;
+                                            salesdata.totalValue = 0;
+                                            for (int i = 0; i < 3; ++i)
+                                            {
+                                                salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                salesdata.totalValue += salesdata.value[i];
+                                                stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                    isPeak = true;
+                                                if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                    isUsed = true;
+                                            }
+                                            if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                SalesDataList.Add(salesdata);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return SalesDataList;
+    }
+
+    void EachResultList(int _cycle, int[] _stack, int _groove, bool _hasPeak, Action<SalesData> result)
+    {
+        int[] stack = new int[_stack.Length];
+        if (_cycle > 7)
+            --_cycle;
+        SalesData salesdata = new SalesData();
+        int checker;
+        bool isPeak = false;
+        bool isUsed = false;
+        UserManager userManager = UserManager.instance;
+        if (userManager.GetCurrentGroove() < userManager.GetMaxGroove() && userManager.GetGroovePriority())
+        {
+            if (userManager.GetCurrentGroove() + (GetActiveWorkshop() * 6) <= userManager.GetMaxGroove() + (GetActiveWorkshop() - 1))
+            {
+                for (int a = 0; a < productList.Count; ++a)
+                {
+                    if (productList[a].IsActive() && productList[a].GetTime() == 4)
+                    {
+                        for (int b = 0; b < productList.Count; ++b)
+                        {
+                            if (a != b && productList[b].IsActive() && productList[b].GetTime() == 4 && ((productList[a].GetCategory() & productList[b].GetCategory()) > 0))
+                            {
+                                for (int c = 0; c < productList.Count; ++c)
+                                {
+                                    if (b != c && productList[c].IsActive() && productList[c].GetTime() == 4 && ((productList[b].GetCategory() & productList[c].GetCategory()) > 0))
+                                    {
+                                        for (int d = 0; d < productList.Count; ++d)
+                                        {
+                                            if (c != d && productList[d].IsActive() && productList[d].GetTime() == 4 && ((productList[c].GetCategory() & productList[d].GetCategory()) > 0))
+                                            {
+                                                for (int e = 0; e < productList.Count; ++e)
+                                                {
+                                                    if (d != e && productList[e].IsActive() && productList[e].GetTime() == 4 && ((productList[d].GetCategory() & productList[e].GetCategory()) > 0))
+                                                    {
+                                                        for (int f = 0; f < productList.Count; ++f)
+                                                        {
+                                                            if (e != f && productList[f].IsActive() && productList[f].GetTime() == 4 && ((productList[e].GetCategory() & productList[f].GetCategory()) > 0))
+                                                            {
+                                                                salesdata.productSize = 6;
+                                                                salesdata.product[0] = a;
+                                                                salesdata.product[1] = b;
+                                                                salesdata.product[2] = c;
+                                                                salesdata.product[3] = d;
+                                                                salesdata.product[4] = e;
+                                                                salesdata.product[5] = f;
+                                                                for (int i = 0; i < stack.Length; ++i)
+                                                                    stack[i] = _stack[i];
+                                                                isPeak = false;
+                                                                isUsed = false;
+                                                                salesdata.totalValue = 0;
+                                                                for (int i = 0; i < 6; ++i)
+                                                                {
+                                                                    salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                    salesdata.totalValue += salesdata.value[i];
+                                                                    stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                    if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                        isPeak = true;
+                                                                    if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                        isUsed = true;
+                                                                }
+                                                                if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                    result.Invoke(salesdata);
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                for (int a = 0; a < productList.Count; ++a)
+                {
+                    if (productList[a].IsActive() && productList[a].GetTime() == 4)
+                    {
+                        if (userManager.GetCurrentGroove() + GetActiveWorkshop() < userManager.GetMaxGroove())
+                        {
+                            for (int b = 0; b < productList.Count; ++b)
+                            {
+                                if (a != b && productList[b].IsActive() && productList[b].GetTime() == 4 && ((productList[a].GetCategory() & productList[b].GetCategory()) > 0))
+                                {
+                                    if (userManager.GetCurrentGroove() + GetActiveWorkshop() * 2 < userManager.GetMaxGroove())
+                                    {
+                                        for (int c = 0; c < productList.Count; ++c)
+                                        {
+                                            if (b != c && productList[c].IsActive() && productList[c].GetTime() == 4 && ((productList[b].GetCategory() & productList[c].GetCategory()) > 0))
+                                            {
+                                                if (userManager.GetCurrentGroove() + GetActiveWorkshop() * 3 < userManager.GetMaxGroove())
+                                                {
+                                                    for (int d = 0; d < productList.Count; ++d)
+                                                    {
+                                                        if (c != d && productList[d].IsActive() && productList[d].GetTime() == 4 && ((productList[c].GetCategory() & productList[d].GetCategory()) > 0))
+                                                        {
+                                                            if (userManager.GetCurrentGroove() + GetActiveWorkshop() * 4 < userManager.GetMaxGroove())
+                                                            {
+                                                                for (int e = 0; e < productList.Count; ++e)
+                                                                {
+                                                                    if (d != e && productList[e].IsActive() && productList[e].GetTime() == 4 && ((productList[d].GetCategory() & productList[e].GetCategory()) > 0))
+                                                                    {
+                                                                        for (int f = 0; f < productList.Count; ++f)
+                                                                        {
+                                                                            if (e != f && productList[f].IsActive() && productList[f].GetTime() == 4 && ((productList[e].GetCategory() & productList[f].GetCategory()) > 0))
+                                                                            {
+                                                                                salesdata.productSize = 6;
+                                                                                salesdata.product[0] = a;
+                                                                                salesdata.product[1] = b;
+                                                                                salesdata.product[2] = c;
+                                                                                salesdata.product[3] = d;
+                                                                                salesdata.product[4] = e;
+                                                                                salesdata.product[5] = f;
+                                                                                for (int i = 0; i < stack.Length; ++i)
+                                                                                    stack[i] = _stack[i];
+                                                                                isPeak = false;
+                                                                                isUsed = false;
+                                                                                salesdata.totalValue = 0;
+                                                                                for (int i = 0; i < 6; ++i)
+                                                                                {
+                                                                                    salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                    salesdata.totalValue += salesdata.value[i];
+                                                                                    stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                    if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                        isPeak = true;
+                                                                                    if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                        isUsed = true;
+                                                                                }
+                                                                                if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                    result.Invoke(salesdata);
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                            else
+                                                            {
+                                                                for (int e = 0; e < productList.Count; ++e)
+                                                                {
+                                                                    if (d != e && productList[e].IsActive() && ((productList[d].GetCategory() & productList[e].GetCategory()) > 0))
+                                                                    {
+                                                                        checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime() + productList[e].GetTime();
+                                                                        if (checker <= 24)
+                                                                        {
+                                                                            if (checker <= 20)
+                                                                            {
+                                                                                for (int f = 0; f < productList.Count; ++f)
+                                                                                {
+                                                                                    if (e != f && productList[f].IsActive() && ((productList[e].GetCategory() & productList[f].GetCategory()) > 0))
+                                                                                    {
+                                                                                        checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime() + productList[e].GetTime() + productList[f].GetTime();
+                                                                                        if (checker <= 24)
+                                                                                        {
+                                                                                            salesdata.productSize = 6;
+                                                                                            salesdata.product[0] = a;
+                                                                                            salesdata.product[1] = b;
+                                                                                            salesdata.product[2] = c;
+                                                                                            salesdata.product[3] = d;
+                                                                                            salesdata.product[4] = e;
+                                                                                            salesdata.product[5] = f;
+                                                                                            for (int i = 0; i < stack.Length; ++i)
+                                                                                                stack[i] = _stack[i];
+                                                                                            isPeak = false;
+                                                                                            isUsed = false;
+                                                                                            salesdata.totalValue = 0;
+                                                                                            for (int i = 0; i < 6; ++i)
+                                                                                            {
+                                                                                                salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                                salesdata.totalValue += salesdata.value[i];
+                                                                                                stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                                if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                                    isPeak = true;
+                                                                                                if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                                    isUsed = true;
+                                                                                            }
+                                                                                            if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                                result.Invoke(salesdata);
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                salesdata.productSize = 5;
+                                                                                salesdata.product[0] = a;
+                                                                                salesdata.product[1] = b;
+                                                                                salesdata.product[2] = c;
+                                                                                salesdata.product[3] = d;
+                                                                                salesdata.product[4] = e;
+                                                                                for (int i = 0; i < stack.Length; ++i)
+                                                                                    stack[i] = _stack[i];
+                                                                                isPeak = false;
+                                                                                isUsed = false;
+                                                                                salesdata.totalValue = 0;
+                                                                                for (int i = 0; i < 5; ++i)
+                                                                                {
+                                                                                    salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                    salesdata.totalValue += salesdata.value[i];
+                                                                                    stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                    if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                        isPeak = true;
+                                                                                    if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                        isUsed = true;
+                                                                                }
+                                                                                if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                    result.Invoke(salesdata);
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    for (int d = 0; d < productList.Count; ++d)
+                                                    {
+                                                        if (c != d && productList[d].IsActive() && ((productList[c].GetCategory() & productList[d].GetCategory()) > 0))
+                                                        {
+                                                            checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime();
+                                                            if (checker <= 24)
+                                                            {
+                                                                if (checker <= 20)
+                                                                {
+                                                                    for (int e = 0; e < productList.Count; ++e)
+                                                                    {
+                                                                        if (d != e && productList[e].IsActive() && ((productList[d].GetCategory() & productList[e].GetCategory()) > 0))
+                                                                        {
+                                                                            checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime() + productList[e].GetTime();
+                                                                            if (checker <= 24)
+                                                                            {
+                                                                                if (checker <= 20)
+                                                                                {
+                                                                                    for (int f = 0; f < productList.Count; ++f)
+                                                                                    {
+                                                                                        if (e != f && productList[f].IsActive() && ((productList[e].GetCategory() & productList[f].GetCategory()) > 0))
+                                                                                        {
+                                                                                            checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime() + productList[e].GetTime() + productList[f].GetTime();
+                                                                                            if (checker <= 24)
+                                                                                            {
+                                                                                                salesdata.productSize = 6;
+                                                                                                salesdata.product[0] = a;
+                                                                                                salesdata.product[1] = b;
+                                                                                                salesdata.product[2] = c;
+                                                                                                salesdata.product[3] = d;
+                                                                                                salesdata.product[4] = e;
+                                                                                                salesdata.product[5] = f;
+                                                                                                for (int i = 0; i < stack.Length; ++i)
+                                                                                                    stack[i] = _stack[i];
+                                                                                                isPeak = false;
+                                                                                                isUsed = false;
+                                                                                                salesdata.totalValue = 0;
+                                                                                                for (int i = 0; i < 6; ++i)
+                                                                                                {
+                                                                                                    salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                                    salesdata.totalValue += salesdata.value[i];
+                                                                                                    stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                                    if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                                        isPeak = true;
+                                                                                                    if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                                        isUsed = true;
+                                                                                                }
+                                                                                                if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                                    result.Invoke(salesdata);
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                                    salesdata.productSize = 5;
+                                                                                    salesdata.product[0] = a;
+                                                                                    salesdata.product[1] = b;
+                                                                                    salesdata.product[2] = c;
+                                                                                    salesdata.product[3] = d;
+                                                                                    salesdata.product[4] = e;
+                                                                                    for (int i = 0; i < stack.Length; ++i)
+                                                                                        stack[i] = _stack[i];
+                                                                                    isPeak = false;
+                                                                                    isUsed = false;
+                                                                                    salesdata.totalValue = 0;
+                                                                                    for (int i = 0; i < 5; ++i)
+                                                                                    {
+                                                                                        salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                        salesdata.totalValue += salesdata.value[i];
+                                                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                            isPeak = true;
+                                                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                            isUsed = true;
+                                                                                    }
+                                                                                    if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                        result.Invoke(salesdata);
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    salesdata.productSize = 4;
+                                                                    salesdata.product[0] = a;
+                                                                    salesdata.product[1] = b;
+                                                                    salesdata.product[2] = c;
+                                                                    salesdata.product[3] = d;
+                                                                    for (int i = 0; i < stack.Length; ++i)
+                                                                        stack[i] = _stack[i];
+                                                                    isPeak = false;
+                                                                    isUsed = false;
+                                                                    salesdata.totalValue = 0;
+                                                                    for (int i = 0; i < 4; ++i)
+                                                                    {
+                                                                        salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                        salesdata.totalValue += salesdata.value[i];
+                                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                            isPeak = true;
+                                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                            isUsed = true;
+                                                                    }
+                                                                    if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                        result.Invoke(salesdata);
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        for (int c = 0; c < productList.Count; ++c)
+                                        {
+                                            if (b != c && productList[c].IsActive() && ((productList[b].GetCategory() & productList[c].GetCategory()) > 0))
+                                            {
+                                                checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime();
+                                                if (checker <= 24)
+                                                {
+                                                    if (checker <= 20)
+                                                    {
+                                                        for (int d = 0; d < productList.Count; ++d)
+                                                        {
+                                                            if (c != d && productList[d].IsActive() && ((productList[c].GetCategory() & productList[d].GetCategory()) > 0))
+                                                            {
+                                                                checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime();
+                                                                if (checker <= 24)
+                                                                {
+                                                                    if (checker <= 20)
+                                                                    {
+                                                                        for (int e = 0; e < productList.Count; ++e)
+                                                                        {
+                                                                            if (d != e && productList[e].IsActive() && ((productList[d].GetCategory() & productList[e].GetCategory()) > 0))
+                                                                            {
+                                                                                checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime() + productList[e].GetTime();
+                                                                                if (checker <= 24)
+                                                                                {
+                                                                                    if (checker <= 20)
+                                                                                    {
+                                                                                        for (int f = 0; f < productList.Count; ++f)
+                                                                                        {
+                                                                                            if (e != f && productList[f].IsActive() && ((productList[e].GetCategory() & productList[f].GetCategory()) > 0))
+                                                                                            {
+                                                                                                checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime() + productList[e].GetTime() + productList[f].GetTime();
+                                                                                                if (checker <= 24)
+                                                                                                {
+                                                                                                    salesdata.productSize = 6;
+                                                                                                    salesdata.product[0] = a;
+                                                                                                    salesdata.product[1] = b;
+                                                                                                    salesdata.product[2] = c;
+                                                                                                    salesdata.product[3] = d;
+                                                                                                    salesdata.product[4] = e;
+                                                                                                    salesdata.product[5] = f;
+                                                                                                    for (int i = 0; i < stack.Length; ++i)
+                                                                                                        stack[i] = _stack[i];
+                                                                                                    isPeak = false;
+                                                                                                    isUsed = false;
+                                                                                                    salesdata.totalValue = 0;
+                                                                                                    for (int i = 0; i < 6; ++i)
+                                                                                                    {
+                                                                                                        salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                                        salesdata.totalValue += salesdata.value[i];
+                                                                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                                            isPeak = true;
+                                                                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                                            isUsed = true;
+                                                                                                    }
+                                                                                                    if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                                        result.Invoke(salesdata);
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                    else
+                                                                                    {
+                                                                                        salesdata.productSize = 5;
+                                                                                        salesdata.product[0] = a;
+                                                                                        salesdata.product[1] = b;
+                                                                                        salesdata.product[2] = c;
+                                                                                        salesdata.product[3] = d;
+                                                                                        salesdata.product[4] = e;
+                                                                                        for (int i = 0; i < stack.Length; ++i)
+                                                                                            stack[i] = _stack[i];
+                                                                                        isPeak = false;
+                                                                                        isUsed = false;
+                                                                                        salesdata.totalValue = 0;
+                                                                                        for (int i = 0; i < 5; ++i)
+                                                                                        {
+                                                                                            salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                            salesdata.totalValue += salesdata.value[i];
+                                                                                            stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                            if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                                isPeak = true;
+                                                                                            if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                                isUsed = true;
+                                                                                        }
+                                                                                        if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                            result.Invoke(salesdata);
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        salesdata.productSize = 4;
+                                                                        salesdata.product[0] = a;
+                                                                        salesdata.product[1] = b;
+                                                                        salesdata.product[2] = c;
+                                                                        salesdata.product[3] = d;
+                                                                        for (int i = 0; i < stack.Length; ++i)
+                                                                            stack[i] = _stack[i];
+                                                                        isPeak = false;
+                                                                        isUsed = false;
+                                                                        salesdata.totalValue = 0;
+                                                                        for (int i = 0; i < 4; ++i)
+                                                                        {
+                                                                            salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                            salesdata.totalValue += salesdata.value[i];
+                                                                            stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                            if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                isPeak = true;
+                                                                            if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                isUsed = true;
+                                                                        }
+                                                                        if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                            result.Invoke(salesdata);
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        salesdata.productSize = 3;
+                                                        salesdata.product[0] = a;
+                                                        salesdata.product[1] = b;
+                                                        salesdata.product[2] = c;
+                                                        for (int i = 0; i < stack.Length; ++i)
+                                                            stack[i] = _stack[i];
+                                                        isPeak = false;
+                                                        isUsed = false;
+                                                        salesdata.totalValue = 0;
+                                                        for (int i = 0; i < 3; ++i)
+                                                        {
+                                                            salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                            salesdata.totalValue += salesdata.value[i];
+                                                            stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                            if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                isPeak = true;
+                                                            if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                isUsed = true;
+                                                        }
+                                                        if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                            result.Invoke(salesdata);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            for (int b = 0; b < productList.Count; ++b)
+                            {
+                                if (a != b && productList[b].IsActive() && ((productList[a].GetCategory() & productList[b].GetCategory()) > 0))
+                                {
+                                    for (int c = 0; c < productList.Count; ++c)
+                                    {
+                                        if (b != c && productList[c].IsActive() && ((productList[b].GetCategory() & productList[c].GetCategory()) > 0))
+                                        {
+                                            checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime();
+                                            if (checker <= 24)
+                                            {
+                                                if (checker <= 20)
+                                                {
+                                                    for (int d = 0; d < productList.Count; ++d)
+                                                    {
+                                                        if (c != d && productList[d].IsActive() && ((productList[c].GetCategory() & productList[d].GetCategory()) > 0))
+                                                        {
+                                                            checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime();
+                                                            if (checker <= 24)
+                                                            {
+                                                                if (checker <= 20)
+                                                                {
+                                                                    for (int e = 0; e < productList.Count; ++e)
+                                                                    {
+                                                                        if (d != e && productList[e].IsActive() && ((productList[d].GetCategory() & productList[e].GetCategory()) > 0))
+                                                                        {
+                                                                            checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime() + productList[e].GetTime();
+                                                                            if (checker <= 24)
+                                                                            {
+                                                                                if (checker <= 20)
+                                                                                {
+                                                                                    for (int f = 0; f < productList.Count; ++f)
+                                                                                    {
+                                                                                        if (e != f && productList[f].IsActive() && ((productList[e].GetCategory() & productList[f].GetCategory()) > 0))
+                                                                                        {
+                                                                                            checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime() + productList[e].GetTime() + productList[f].GetTime();
+                                                                                            if (checker <= 24)
+                                                                                            {
+                                                                                                salesdata.productSize = 6;
+                                                                                                salesdata.product[0] = a;
+                                                                                                salesdata.product[1] = b;
+                                                                                                salesdata.product[2] = c;
+                                                                                                salesdata.product[3] = d;
+                                                                                                salesdata.product[4] = e;
+                                                                                                salesdata.product[5] = f;
+                                                                                                for (int i = 0; i < stack.Length; ++i)
+                                                                                                    stack[i] = _stack[i];
+                                                                                                isPeak = false;
+                                                                                                isUsed = false;
+                                                                                                salesdata.totalValue = 0;
+                                                                                                for (int i = 0; i < 6; ++i)
+                                                                                                {
+                                                                                                    salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                                    salesdata.totalValue += salesdata.value[i];
+                                                                                                    stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                                    if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                                        isPeak = true;
+                                                                                                    if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                                        isUsed = true;
+                                                                                                }
+                                                                                                if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                                    result.Invoke(salesdata);
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                                    salesdata.productSize = 5;
+                                                                                    salesdata.product[0] = a;
+                                                                                    salesdata.product[1] = b;
+                                                                                    salesdata.product[2] = c;
+                                                                                    salesdata.product[3] = d;
+                                                                                    salesdata.product[4] = e;
+                                                                                    for (int i = 0; i < stack.Length; ++i)
+                                                                                        stack[i] = _stack[i];
+                                                                                    isPeak = false;
+                                                                                    isUsed = false;
+                                                                                    salesdata.totalValue = 0;
+                                                                                    for (int i = 0; i < 5; ++i)
+                                                                                    {
+                                                                                        salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                        salesdata.totalValue += salesdata.value[i];
+                                                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                            isPeak = true;
+                                                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                            isUsed = true;
+                                                                                    }
+                                                                                    if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                        result.Invoke(salesdata);
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    salesdata.productSize = 4;
+                                                                    salesdata.product[0] = a;
+                                                                    salesdata.product[1] = b;
+                                                                    salesdata.product[2] = c;
+                                                                    salesdata.product[3] = d;
+                                                                    for (int i = 0; i < stack.Length; ++i)
+                                                                        stack[i] = _stack[i];
+                                                                    isPeak = false;
+                                                                    isUsed = false;
+                                                                    salesdata.totalValue = 0;
+                                                                    for (int i = 0; i < 4; ++i)
+                                                                    {
+                                                                        salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                        salesdata.totalValue += salesdata.value[i];
+                                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                            isPeak = true;
+                                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                            isUsed = true;
+                                                                    }
+                                                                    if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                        result.Invoke(salesdata);
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    salesdata.productSize = 3;
+                                                    salesdata.product[0] = a;
+                                                    salesdata.product[1] = b;
+                                                    salesdata.product[2] = c;
+                                                    for (int i = 0; i < stack.Length; ++i)
+                                                        stack[i] = _stack[i];
+                                                    isPeak = false;
+                                                    isUsed = false;
+                                                    salesdata.totalValue = 0;
+                                                    for (int i = 0; i < 3; ++i)
+                                                    {
+                                                        salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                        salesdata.totalValue += salesdata.value[i];
+                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                            isPeak = true;
+                                                        if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                            isUsed = true;
+                                                    }
+                                                    if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                        result.Invoke(salesdata);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (int a = 0; a < productList.Count; ++a)
+            {
+                if (productList[a].IsActive())
+                {
+                    for (int b = 0; b < productList.Count; ++b)
+                    {
+                        if (a != b && productList[b].IsActive() && ((productList[a].GetCategory() & productList[b].GetCategory()) > 0))
+                        {
+                            for (int c = 0; c < productList.Count; ++c)
+                            {
+                                if (b != c && productList[c].IsActive() && ((productList[b].GetCategory() & productList[c].GetCategory()) > 0))
+                                {
+                                    checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime();
+                                    if (checker <= 24)
+                                    {
+                                        if (checker <= 20)
+                                        {
+                                            for (int d = 0; d < productList.Count; ++d)
+                                            {
+                                                if (c != d && productList[d].IsActive() && ((productList[c].GetCategory() & productList[d].GetCategory()) > 0))
+                                                {
+                                                    checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime();
+                                                    if (checker <= 24)
+                                                    {
+                                                        if (checker <= 20)
+                                                        {
+                                                            for (int e = 0; e < productList.Count; ++e)
+                                                            {
+                                                                if (d != e && productList[e].IsActive() && ((productList[d].GetCategory() & productList[e].GetCategory()) > 0))
+                                                                {
+                                                                    checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime() + productList[e].GetTime();
+                                                                    if (checker <= 24)
+                                                                    {
+                                                                        if (checker <= 20)
+                                                                        {
+                                                                            for (int f = 0; f < productList.Count; ++f)
+                                                                            {
+                                                                                if (e != f && productList[f].IsActive() && ((productList[e].GetCategory() & productList[f].GetCategory()) > 0))
+                                                                                {
+                                                                                    checker = productList[a].GetTime() + productList[b].GetTime() + productList[c].GetTime() + productList[d].GetTime() + productList[e].GetTime() + productList[f].GetTime();
+                                                                                    if (checker <= 24)
+                                                                                    {
+                                                                                        salesdata.productSize = 6;
+                                                                                        salesdata.product[0] = a;
+                                                                                        salesdata.product[1] = b;
+                                                                                        salesdata.product[2] = c;
+                                                                                        salesdata.product[3] = d;
+                                                                                        salesdata.product[4] = e;
+                                                                                        salesdata.product[5] = f;
+                                                                                        for (int i = 0; i < stack.Length; ++i)
+                                                                                            stack[i] = _stack[i];
+                                                                                        isPeak = false;
+                                                                                        isUsed = false;
+                                                                                        salesdata.totalValue = 0;
+                                                                                        for (int i = 0; i < 6; ++i)
+                                                                                        {
+                                                                                            salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                            salesdata.totalValue += salesdata.value[i];
+                                                                                            stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                            if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                                isPeak = true;
+                                                                                            if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                                isUsed = true;
+                                                                                        }
+                                                                                        if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                            result.Invoke(salesdata);
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            salesdata.productSize = 5;
+                                                                            salesdata.product[0] = a;
+                                                                            salesdata.product[1] = b;
+                                                                            salesdata.product[2] = c;
+                                                                            salesdata.product[3] = d;
+                                                                            salesdata.product[4] = e;
+                                                                            for (int i = 0; i < stack.Length; ++i)
+                                                                                stack[i] = _stack[i];
+                                                                            isPeak = false;
+                                                                            isUsed = false;
+                                                                            salesdata.totalValue = 0;
+                                                                            for (int i = 0; i < 5; ++i)
+                                                                            {
+                                                                                salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                                salesdata.totalValue += salesdata.value[i];
+                                                                                stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                                    isPeak = true;
+                                                                                if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                                    isUsed = true;
+                                                                            }
+                                                                            if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                                result.Invoke(salesdata);
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            salesdata.productSize = 4;
+                                                            salesdata.product[0] = a;
+                                                            salesdata.product[1] = b;
+                                                            salesdata.product[2] = c;
+                                                            salesdata.product[3] = d;
+                                                            for (int i = 0; i < stack.Length; ++i)
+                                                                stack[i] = _stack[i];
+                                                            isPeak = false;
+                                                            isUsed = false;
+                                                            salesdata.totalValue = 0;
+                                                            for (int i = 0; i < 4; ++i)
+                                                            {
+                                                                salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                                salesdata.totalValue += salesdata.value[i];
+                                                                stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                                    isPeak = true;
+                                                                if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                                    isUsed = true;
+                                                            }
+                                                            if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                                result.Invoke(salesdata);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            salesdata.productSize = 3;
+                                            salesdata.product[0] = a;
+                                            salesdata.product[1] = b;
+                                            salesdata.product[2] = c;
+                                            for (int i = 0; i < stack.Length; ++i)
+                                                stack[i] = _stack[i];
+                                            isPeak = false;
+                                            isUsed = false;
+                                            salesdata.totalValue = 0;
+                                            for (int i = 0; i < 3; ++i)
+                                            {
+                                                salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
+                                                salesdata.totalValue += salesdata.value[i];
+                                                stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
+                                                    isPeak = true;
+                                                if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
+                                                    isUsed = true;
+                                            }
+                                            if (!_hasPeak || (_hasPeak && isPeak && !isUsed))
+                                                result.Invoke(salesdata);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    List<SalesData> GetEnableList()
     {
         List<SalesData> SalesDataList = new List<SalesData>();
         SalesData salesdata;
@@ -694,26 +3117,13 @@ public class Workshop : MonoBehaviour
                                                             if (e != f && productList[f].IsActive() && productList[f].GetTime() == 4 && ((productList[e].GetCategory() & productList[f].GetCategory()) > 0))
                                                             {
                                                                 salesdata = new SalesData();
-                                                                salesdata.product = new int[6];
                                                                 salesdata.product[0] = a;
                                                                 salesdata.product[1] = b;
                                                                 salesdata.product[2] = c;
                                                                 salesdata.product[3] = d;
                                                                 salesdata.product[4] = e;
                                                                 salesdata.product[5] = f;
-                                                                productList[a].ResetCount();
-                                                                productList[b].ResetCount();
-                                                                productList[c].ResetCount();
-                                                                productList[d].ResetCount();
-                                                                productList[e].ResetCount();
-                                                                productList[f].ResetCount();
-                                                                salesdata.value = new int[6];
-                                                                for (int i = 0; i < 6; ++i)
-                                                                {
-                                                                    salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
-                                                                    salesdata.totalValue += salesdata.value[i];
-                                                                    productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
-                                                                }
+                                                                salesdata.productSize = 6;
                                                                 SalesDataList.Add(salesdata);
                                                             }
                                                         }
@@ -763,26 +3173,13 @@ public class Workshop : MonoBehaviour
                                                                             if (e != f && productList[f].IsActive() && productList[f].GetTime() == 4 && ((productList[e].GetCategory() & productList[f].GetCategory()) > 0))
                                                                             {
                                                                                 salesdata = new SalesData();
-                                                                                salesdata.product = new int[6];
                                                                                 salesdata.product[0] = a;
                                                                                 salesdata.product[1] = b;
                                                                                 salesdata.product[2] = c;
                                                                                 salesdata.product[3] = d;
                                                                                 salesdata.product[4] = e;
                                                                                 salesdata.product[5] = f;
-                                                                                productList[a].ResetCount();
-                                                                                productList[b].ResetCount();
-                                                                                productList[c].ResetCount();
-                                                                                productList[d].ResetCount();
-                                                                                productList[e].ResetCount();
-                                                                                productList[f].ResetCount();
-                                                                                salesdata.value = new int[6];
-                                                                                for (int i = 0; i < 6; ++i)
-                                                                                {
-                                                                                    salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
-                                                                                    salesdata.totalValue += salesdata.value[i];
-                                                                                    productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
-                                                                                }
+                                                                                salesdata.productSize = 6;
                                                                                 SalesDataList.Add(salesdata);
                                                                             }
                                                                         }
@@ -808,26 +3205,13 @@ public class Workshop : MonoBehaviour
                                                                                         if (checker <= 24)
                                                                                         {
                                                                                             salesdata = new SalesData();
-                                                                                            salesdata.product = new int[6];
                                                                                             salesdata.product[0] = a;
                                                                                             salesdata.product[1] = b;
                                                                                             salesdata.product[2] = c;
                                                                                             salesdata.product[3] = d;
                                                                                             salesdata.product[4] = e;
                                                                                             salesdata.product[5] = f;
-                                                                                            productList[a].ResetCount();
-                                                                                            productList[b].ResetCount();
-                                                                                            productList[c].ResetCount();
-                                                                                            productList[d].ResetCount();
-                                                                                            productList[e].ResetCount();
-                                                                                            productList[f].ResetCount();
-                                                                                            salesdata.value = new int[6];
-                                                                                            for (int i = 0; i < 6; ++i)
-                                                                                            {
-                                                                                                salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
-                                                                                                salesdata.totalValue += salesdata.value[i];
-                                                                                                productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
-                                                                                            }
+                                                                                            salesdata.productSize = 6;
                                                                                             SalesDataList.Add(salesdata);
                                                                                         }
                                                                                     }
@@ -836,24 +3220,13 @@ public class Workshop : MonoBehaviour
                                                                             else
                                                                             {
                                                                                 salesdata = new SalesData();
-                                                                                salesdata.product = new int[5];
                                                                                 salesdata.product[0] = a;
                                                                                 salesdata.product[1] = b;
                                                                                 salesdata.product[2] = c;
                                                                                 salesdata.product[3] = d;
                                                                                 salesdata.product[4] = e;
-                                                                                productList[a].ResetCount();
-                                                                                productList[b].ResetCount();
-                                                                                productList[c].ResetCount();
-                                                                                productList[d].ResetCount();
-                                                                                productList[e].ResetCount();
-                                                                                salesdata.value = new int[5];
-                                                                                for (int i = 0; i < 5; ++i)
-                                                                                {
-                                                                                    salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
-                                                                                    salesdata.totalValue += salesdata.value[i];
-                                                                                    productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
-                                                                                }
+                                                                                salesdata.product[5] = -1;
+                                                                                salesdata.productSize = 5;
                                                                                 SalesDataList.Add(salesdata);
                                                                             }
                                                                         }
@@ -891,26 +3264,13 @@ public class Workshop : MonoBehaviour
                                                                                             if (checker <= 24)
                                                                                             {
                                                                                                 salesdata = new SalesData();
-                                                                                                salesdata.product = new int[6];
                                                                                                 salesdata.product[0] = a;
                                                                                                 salesdata.product[1] = b;
                                                                                                 salesdata.product[2] = c;
                                                                                                 salesdata.product[3] = d;
                                                                                                 salesdata.product[4] = e;
                                                                                                 salesdata.product[5] = f;
-                                                                                                productList[a].ResetCount();
-                                                                                                productList[b].ResetCount();
-                                                                                                productList[c].ResetCount();
-                                                                                                productList[d].ResetCount();
-                                                                                                productList[e].ResetCount();
-                                                                                                productList[f].ResetCount();
-                                                                                                salesdata.value = new int[6];
-                                                                                                for (int i = 0; i < 6; ++i)
-                                                                                                {
-                                                                                                    salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
-                                                                                                    salesdata.totalValue += salesdata.value[i];
-                                                                                                    productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
-                                                                                                }
+                                                                                                salesdata.productSize = 6;
                                                                                                 SalesDataList.Add(salesdata);
                                                                                             }
                                                                                         }
@@ -919,24 +3279,13 @@ public class Workshop : MonoBehaviour
                                                                                 else
                                                                                 {
                                                                                     salesdata = new SalesData();
-                                                                                    salesdata.product = new int[5];
                                                                                     salesdata.product[0] = a;
                                                                                     salesdata.product[1] = b;
                                                                                     salesdata.product[2] = c;
                                                                                     salesdata.product[3] = d;
                                                                                     salesdata.product[4] = e;
-                                                                                    productList[a].ResetCount();
-                                                                                    productList[b].ResetCount();
-                                                                                    productList[c].ResetCount();
-                                                                                    productList[d].ResetCount();
-                                                                                    productList[e].ResetCount();
-                                                                                    salesdata.value = new int[5];
-                                                                                    for (int i = 0; i < 5; ++i)
-                                                                                    {
-                                                                                        salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
-                                                                                        salesdata.totalValue += salesdata.value[i];
-                                                                                        productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
-                                                                                    }
+                                                                                    salesdata.product[5] = -1;
+                                                                                    salesdata.productSize = 5;
                                                                                     SalesDataList.Add(salesdata);
                                                                                 }
                                                                             }
@@ -946,22 +3295,13 @@ public class Workshop : MonoBehaviour
                                                                 else
                                                                 {
                                                                     salesdata = new SalesData();
-                                                                    salesdata.product = new int[4];
                                                                     salesdata.product[0] = a;
                                                                     salesdata.product[1] = b;
                                                                     salesdata.product[2] = c;
                                                                     salesdata.product[3] = d;
-                                                                    productList[a].ResetCount();
-                                                                    productList[b].ResetCount();
-                                                                    productList[c].ResetCount();
-                                                                    productList[d].ResetCount();
-                                                                    salesdata.value = new int[4];
-                                                                    for (int i = 0; i < 4; ++i)
-                                                                    {
-                                                                        salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
-                                                                        salesdata.totalValue += salesdata.value[i];
-                                                                        productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
-                                                                    }
+                                                                    salesdata.product[4] = -1;
+                                                                    salesdata.product[5] = -1;
+                                                                    salesdata.productSize = 4;
                                                                     SalesDataList.Add(salesdata);
                                                                 }
                                                             }
@@ -1008,26 +3348,13 @@ public class Workshop : MonoBehaviour
                                                                                                 if (checker <= 24)
                                                                                                 {
                                                                                                     salesdata = new SalesData();
-                                                                                                    salesdata.product = new int[6];
                                                                                                     salesdata.product[0] = a;
                                                                                                     salesdata.product[1] = b;
                                                                                                     salesdata.product[2] = c;
                                                                                                     salesdata.product[3] = d;
                                                                                                     salesdata.product[4] = e;
                                                                                                     salesdata.product[5] = f;
-                                                                                                    productList[a].ResetCount();
-                                                                                                    productList[b].ResetCount();
-                                                                                                    productList[c].ResetCount();
-                                                                                                    productList[d].ResetCount();
-                                                                                                    productList[e].ResetCount();
-                                                                                                    productList[f].ResetCount();
-                                                                                                    salesdata.value = new int[6];
-                                                                                                    for (int i = 0; i < 6; ++i)
-                                                                                                    {
-                                                                                                        salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
-                                                                                                        salesdata.totalValue += salesdata.value[i];
-                                                                                                        productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
-                                                                                                    }
+                                                                                                    salesdata.productSize = 6;
                                                                                                     SalesDataList.Add(salesdata);
                                                                                                 }
                                                                                             }
@@ -1036,24 +3363,13 @@ public class Workshop : MonoBehaviour
                                                                                     else
                                                                                     {
                                                                                         salesdata = new SalesData();
-                                                                                        salesdata.product = new int[5];
                                                                                         salesdata.product[0] = a;
                                                                                         salesdata.product[1] = b;
                                                                                         salesdata.product[2] = c;
                                                                                         salesdata.product[3] = d;
                                                                                         salesdata.product[4] = e;
-                                                                                        productList[a].ResetCount();
-                                                                                        productList[b].ResetCount();
-                                                                                        productList[c].ResetCount();
-                                                                                        productList[d].ResetCount();
-                                                                                        productList[e].ResetCount();
-                                                                                        salesdata.value = new int[5];
-                                                                                        for (int i = 0; i < 5; ++i)
-                                                                                        {
-                                                                                            salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
-                                                                                            salesdata.totalValue += salesdata.value[i];
-                                                                                            productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
-                                                                                        }
+                                                                                        salesdata.product[5] = -1;
+                                                                                        salesdata.productSize = 5;
                                                                                         SalesDataList.Add(salesdata);
                                                                                     }
                                                                                 }
@@ -1063,22 +3379,13 @@ public class Workshop : MonoBehaviour
                                                                     else
                                                                     {
                                                                         salesdata = new SalesData();
-                                                                        salesdata.product = new int[4];
                                                                         salesdata.product[0] = a;
                                                                         salesdata.product[1] = b;
                                                                         salesdata.product[2] = c;
                                                                         salesdata.product[3] = d;
-                                                                        productList[a].ResetCount();
-                                                                        productList[b].ResetCount();
-                                                                        productList[c].ResetCount();
-                                                                        productList[d].ResetCount();
-                                                                        salesdata.value = new int[4];
-                                                                        for (int i = 0; i < 4; ++i)
-                                                                        {
-                                                                            salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
-                                                                            salesdata.totalValue += salesdata.value[i];
-                                                                            productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
-                                                                        }
+                                                                        salesdata.product[4] = -1;
+                                                                        salesdata.product[5] = -1;
+                                                                        salesdata.productSize = 4;
                                                                         SalesDataList.Add(salesdata);
                                                                     }
                                                                 }
@@ -1088,20 +3395,13 @@ public class Workshop : MonoBehaviour
                                                     else
                                                     {
                                                         salesdata = new SalesData();
-                                                        salesdata.product = new int[3];
                                                         salesdata.product[0] = a;
                                                         salesdata.product[1] = b;
                                                         salesdata.product[2] = c;
-                                                        productList[a].ResetCount();
-                                                        productList[b].ResetCount();
-                                                        productList[c].ResetCount();
-                                                        salesdata.value = new int[3];
-                                                        for (int i = 0; i < 3; ++i)
-                                                        {
-                                                            salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
-                                                            salesdata.totalValue += salesdata.value[i];
-                                                            productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
-                                                        }
+                                                        salesdata.product[3] = -1;
+                                                        salesdata.product[4] = -1;
+                                                        salesdata.product[5] = -1;
+                                                        salesdata.productSize = 3;
                                                         SalesDataList.Add(salesdata);
                                                     }
                                                 }
@@ -1152,26 +3452,13 @@ public class Workshop : MonoBehaviour
                                                                                             if (checker <= 24)
                                                                                             {
                                                                                                 salesdata = new SalesData();
-                                                                                                salesdata.product = new int[6];
                                                                                                 salesdata.product[0] = a;
                                                                                                 salesdata.product[1] = b;
                                                                                                 salesdata.product[2] = c;
                                                                                                 salesdata.product[3] = d;
                                                                                                 salesdata.product[4] = e;
                                                                                                 salesdata.product[5] = f;
-                                                                                                productList[a].ResetCount();
-                                                                                                productList[b].ResetCount();
-                                                                                                productList[c].ResetCount();
-                                                                                                productList[d].ResetCount();
-                                                                                                productList[e].ResetCount();
-                                                                                                productList[f].ResetCount();
-                                                                                                salesdata.value = new int[6];
-                                                                                                for (int i = 0; i < 6; ++i)
-                                                                                                {
-                                                                                                    salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
-                                                                                                    salesdata.totalValue += salesdata.value[i];
-                                                                                                    productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
-                                                                                                }
+                                                                                                salesdata.productSize = 6;
                                                                                                 SalesDataList.Add(salesdata);
                                                                                             }
                                                                                         }
@@ -1180,24 +3467,13 @@ public class Workshop : MonoBehaviour
                                                                                 else
                                                                                 {
                                                                                     salesdata = new SalesData();
-                                                                                    salesdata.product = new int[5];
                                                                                     salesdata.product[0] = a;
                                                                                     salesdata.product[1] = b;
                                                                                     salesdata.product[2] = c;
                                                                                     salesdata.product[3] = d;
                                                                                     salesdata.product[4] = e;
-                                                                                    productList[a].ResetCount();
-                                                                                    productList[b].ResetCount();
-                                                                                    productList[c].ResetCount();
-                                                                                    productList[d].ResetCount();
-                                                                                    productList[e].ResetCount();
-                                                                                    salesdata.value = new int[5];
-                                                                                    for (int i = 0; i < 5; ++i)
-                                                                                    {
-                                                                                        salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
-                                                                                        salesdata.totalValue += salesdata.value[i];
-                                                                                        productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
-                                                                                    }
+                                                                                    salesdata.product[5] = -1;
+                                                                                    salesdata.productSize = 5;
                                                                                     SalesDataList.Add(salesdata);
                                                                                 }
                                                                             }
@@ -1207,22 +3483,13 @@ public class Workshop : MonoBehaviour
                                                                 else
                                                                 {
                                                                     salesdata = new SalesData();
-                                                                    salesdata.product = new int[4];
                                                                     salesdata.product[0] = a;
                                                                     salesdata.product[1] = b;
                                                                     salesdata.product[2] = c;
                                                                     salesdata.product[3] = d;
-                                                                    productList[a].ResetCount();
-                                                                    productList[b].ResetCount();
-                                                                    productList[c].ResetCount();
-                                                                    productList[d].ResetCount();
-                                                                    salesdata.value = new int[4];
-                                                                    for (int i = 0; i < 4; ++i)
-                                                                    {
-                                                                        salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
-                                                                        salesdata.totalValue += salesdata.value[i];
-                                                                        productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
-                                                                    }
+                                                                    salesdata.product[4] = -1;
+                                                                    salesdata.product[5] = -1;
+                                                                    salesdata.productSize = 4;
                                                                     SalesDataList.Add(salesdata);
                                                                 }
                                                             }
@@ -1232,20 +3499,13 @@ public class Workshop : MonoBehaviour
                                                 else
                                                 {
                                                     salesdata = new SalesData();
-                                                    salesdata.product = new int[3];
                                                     salesdata.product[0] = a;
                                                     salesdata.product[1] = b;
                                                     salesdata.product[2] = c;
-                                                    productList[a].ResetCount();
-                                                    productList[b].ResetCount();
-                                                    productList[c].ResetCount();
-                                                    salesdata.value = new int[3];
-                                                    for (int i = 0; i < 3; ++i)
-                                                    {
-                                                        salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
-                                                        salesdata.totalValue += salesdata.value[i];
-                                                        productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
-                                                    }
+                                                    salesdata.product[3] = -1;
+                                                    salesdata.product[4] = -1;
+                                                    salesdata.product[5] = -1;
+                                                    salesdata.productSize = 3;
                                                     SalesDataList.Add(salesdata);
                                                 }
                                             }
@@ -1303,26 +3563,13 @@ public class Workshop : MonoBehaviour
                                                                                     if (checker <= 24)
                                                                                     {
                                                                                         salesdata = new SalesData();
-                                                                                        salesdata.product = new int[6];
                                                                                         salesdata.product[0] = a;
                                                                                         salesdata.product[1] = b;
                                                                                         salesdata.product[2] = c;
                                                                                         salesdata.product[3] = d;
                                                                                         salesdata.product[4] = e;
                                                                                         salesdata.product[5] = f;
-                                                                                        productList[a].ResetCount();
-                                                                                        productList[b].ResetCount();
-                                                                                        productList[c].ResetCount();
-                                                                                        productList[d].ResetCount();
-                                                                                        productList[e].ResetCount();
-                                                                                        productList[f].ResetCount();
-                                                                                        salesdata.value = new int[6];
-                                                                                        for (int i = 0; i < 6; ++i)
-                                                                                        {
-                                                                                            salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
-                                                                                            salesdata.totalValue += salesdata.value[i];
-                                                                                            productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
-                                                                                        }
+                                                                                        salesdata.productSize = 6;
                                                                                         SalesDataList.Add(salesdata);
                                                                                     }
                                                                                 }
@@ -1331,24 +3578,13 @@ public class Workshop : MonoBehaviour
                                                                         else
                                                                         {
                                                                             salesdata = new SalesData();
-                                                                            salesdata.product = new int[5];
                                                                             salesdata.product[0] = a;
                                                                             salesdata.product[1] = b;
                                                                             salesdata.product[2] = c;
                                                                             salesdata.product[3] = d;
                                                                             salesdata.product[4] = e;
-                                                                            productList[a].ResetCount();
-                                                                            productList[b].ResetCount();
-                                                                            productList[c].ResetCount();
-                                                                            productList[d].ResetCount();
-                                                                            productList[e].ResetCount();
-                                                                            salesdata.value = new int[5];
-                                                                            for (int i = 0; i < 5; ++i)
-                                                                            {
-                                                                                salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
-                                                                                salesdata.totalValue += salesdata.value[i];
-                                                                                productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
-                                                                            }
+                                                                            salesdata.product[5] = -1;
+                                                                            salesdata.productSize = 5;
                                                                             SalesDataList.Add(salesdata);
                                                                         }
                                                                     }
@@ -1358,22 +3594,13 @@ public class Workshop : MonoBehaviour
                                                         else
                                                         {
                                                             salesdata = new SalesData();
-                                                            salesdata.product = new int[4];
                                                             salesdata.product[0] = a;
                                                             salesdata.product[1] = b;
                                                             salesdata.product[2] = c;
                                                             salesdata.product[3] = d;
-                                                            productList[a].ResetCount();
-                                                            productList[b].ResetCount();
-                                                            productList[c].ResetCount();
-                                                            productList[d].ResetCount();
-                                                            salesdata.value = new int[4];
-                                                            for (int i = 0; i < 4; ++i)
-                                                            {
-                                                                salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
-                                                                salesdata.totalValue += salesdata.value[i];
-                                                                productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
-                                                            }
+                                                            salesdata.product[4] = -1;
+                                                            salesdata.product[5] = -1;
+                                                            salesdata.productSize = 4;
                                                             SalesDataList.Add(salesdata);
                                                         }
                                                     }
@@ -1383,20 +3610,13 @@ public class Workshop : MonoBehaviour
                                         else
                                         {
                                             salesdata = new SalesData();
-                                            salesdata.product = new int[3];
                                             salesdata.product[0] = a;
                                             salesdata.product[1] = b;
                                             salesdata.product[2] = c;
-                                            productList[a].ResetCount();
-                                            productList[b].ResetCount();
-                                            productList[c].ResetCount();
-                                            salesdata.value = new int[3];
-                                            for (int i = 0; i < 3; ++i)
-                                            {
-                                                salesdata.value[i] += GetProductValue(salesdata.product[i], i, cycle, userManager.GetCurrentGroove());
-                                                salesdata.totalValue += salesdata.value[i];
-                                                productList[salesdata.product[i]].AddCount(GetActiveWorkshop() * (i == 0 ? 1 : 2));
-                                            }
+                                            salesdata.product[3] = -1;
+                                            salesdata.product[4] = -1;
+                                            salesdata.product[5] = -1;
+                                            salesdata.productSize = 3;
                                             SalesDataList.Add(salesdata);
                                         }
                                     }
@@ -1407,11 +3627,370 @@ public class Workshop : MonoBehaviour
                 }
             }
         }
-        productList.ForEach((form) =>
-        {
-            form.ResetCount();
-        });
         return SalesDataList;
+    }
+
+    public List<SalesData> GetResultListGPU(int _cycle, int[] _stack, int _groove, List<SalesData> enableList)
+    {
+        List<SalesData> dataList = GetEnableList().ConvertAll(form => new SalesData(form));
+        int gpuKernel = gpuCalculate.FindKernel("CSMain");
+        int[] value = new int[productList.Count];
+        for (int i = 0; i < value.Length; ++i)
+            value[i] = productList[i].GetValue();
+        gpuCalculateValue = new ComputeBuffer(50, sizeof(uint));
+        gpuCalculateValue.SetData(value);
+        gpuCalculate.SetBuffer(gpuKernel, "value", gpuCalculateValue);
+        int[] supply = new int[productList.Count];
+        for (int i = 0; i < supply.Length; ++i)
+            supply[i] = productList[i].GetSupplyValue(_cycle) + _stack[i];
+        gpuCalculateSupply = new ComputeBuffer(50, sizeof(int));
+        gpuCalculateSupply.SetData(supply);
+        gpuCalculate.SetBuffer(gpuKernel, "supply", gpuCalculateSupply);
+        float[] popularity = new float[productList.Count];
+        for (int i = 0; i < popularity.Length; ++i)
+            popularity[i] = GetPopularityValue(productList[i].GetPopularity(_cycle));
+        gpuCalculatePopularity = new ComputeBuffer(50, sizeof(float));
+        gpuCalculatePopularity.SetData(popularity);
+        gpuCalculate.SetBuffer(gpuKernel, "popularity", gpuCalculatePopularity);
+
+        gpuCalculate.SetInt("grooveNow", _groove);
+        gpuCalculate.SetInt("grooveMax", UserManager.instance.GetMaxGroove());
+        gpuCalculate.SetInt("workshopActive", GetActiveWorkshop());
+        gpuCalculate.SetFloat("workshopRank", GetWorkshopTierValue(GetHighestWorkshopTier()));
+        gpuCalculateItemA = new ComputeBuffer(1024, sizeof(int));
+        gpuCalculateItemB = new ComputeBuffer(1024, sizeof(int));
+        gpuCalculateItemC = new ComputeBuffer(1024, sizeof(int));
+        gpuCalculateItemD = new ComputeBuffer(1024, sizeof(int));
+        gpuCalculateItemE = new ComputeBuffer(1024, sizeof(int));
+        gpuCalculateItemF = new ComputeBuffer(1024, sizeof(int));
+        gpuCalculateResultA = new ComputeBuffer(1024, sizeof(uint));
+        gpuCalculateResultB = new ComputeBuffer(1024, sizeof(uint));
+        gpuCalculateResultC = new ComputeBuffer(1024, sizeof(uint));
+        gpuCalculateResultD = new ComputeBuffer(1024, sizeof(uint));
+        gpuCalculateResultE = new ComputeBuffer(1024, sizeof(uint));
+        gpuCalculateResultF = new ComputeBuffer(1024, sizeof(uint));
+        gpuCalculateResultTotal = new ComputeBuffer(1024, sizeof(uint));
+        int[] itemA = new int[1024];
+        int[] itemB = new int[1024];
+        int[] itemC = new int[1024];
+        int[] itemD = new int[1024];
+        int[] itemE = new int[1024];
+        int[] itemF = new int[1024];
+        int highestValue = 0;
+        int lastIndex = (dataList.Count % 1024 == 0 ? 0 : 1) + dataList.Count / 1024;
+        int dataIndex;
+        for (int i = 0; i < lastIndex; ++i)
+        {
+            if (i == lastIndex - 1)
+            {
+                for (int j = 0; j < dataList.Count % 1024; ++j)
+                {
+                    dataIndex = 1024 * i + j;
+                    itemA[j] = dataList[dataIndex].product[0];
+                    itemB[j] = dataList[dataIndex].product[1];
+                    itemC[j] = dataList[dataIndex].product[2];
+                    itemD[j] = dataList[dataIndex].product[3];
+                    itemE[j] = dataList[dataIndex].product[4];
+                    itemF[j] = dataList[dataIndex].product[5];
+                }
+                for (int j = dataList.Count % 1024; j < 1024; ++j)
+                {
+                    itemA[j] = -1;
+                    itemB[j] = -1;
+                    itemC[j] = -1;
+                    itemD[j] = -1;
+                    itemE[j] = -1;
+                    itemF[j] = -1;
+                }
+            }
+            else
+            {
+                for (int j = 0; j < 1024; ++j)
+                {
+                    dataIndex = 1024 * i + j;
+                    itemA[j] = dataList[dataIndex].product[0];
+                    itemB[j] = dataList[dataIndex].product[1];
+                    itemC[j] = dataList[dataIndex].product[2];
+                    itemD[j] = dataList[dataIndex].product[3];
+                    itemE[j] = dataList[dataIndex].product[4];
+                    itemF[j] = dataList[dataIndex].product[5];
+                }
+            }
+            gpuCalculateItemA.SetData(itemA);
+            gpuCalculate.SetBuffer(gpuKernel, "ItemA", gpuCalculateItemA);
+            gpuCalculateItemB.SetData(itemB);
+            gpuCalculate.SetBuffer(gpuKernel, "ItemB", gpuCalculateItemB);
+            gpuCalculateItemC.SetData(itemC);
+            gpuCalculate.SetBuffer(gpuKernel, "ItemC", gpuCalculateItemC);
+            gpuCalculateItemD.SetData(itemD);
+            gpuCalculate.SetBuffer(gpuKernel, "ItemD", gpuCalculateItemD);
+            gpuCalculateItemE.SetData(itemE);
+            gpuCalculate.SetBuffer(gpuKernel, "ItemE", gpuCalculateItemE);
+            gpuCalculateItemF.SetData(itemF);
+            gpuCalculate.SetBuffer(gpuKernel, "ItemF", gpuCalculateItemF);
+
+            int[] resultA = new int[1024];
+            gpuCalculateResultA.SetData(resultA);
+            gpuCalculate.SetBuffer(gpuKernel, "ResultA", gpuCalculateResultA);
+            int[] resultB = new int[1024];
+            gpuCalculateResultB.SetData(resultB);
+            gpuCalculate.SetBuffer(gpuKernel, "ResultB", gpuCalculateResultB);
+            int[] resultC = new int[1024];
+            gpuCalculateResultC.SetData(resultC);
+            gpuCalculate.SetBuffer(gpuKernel, "ResultC", gpuCalculateResultC);
+            int[] resultD = new int[1024];
+            gpuCalculateResultD.SetData(resultD);
+            gpuCalculate.SetBuffer(gpuKernel, "ResultD", gpuCalculateResultD);
+            int[] resultE = new int[1024];
+            gpuCalculateResultE.SetData(resultE);
+            gpuCalculate.SetBuffer(gpuKernel, "ResultE", gpuCalculateResultE);
+            int[] resultF = new int[1024];
+            gpuCalculateResultF.SetData(resultF);
+            gpuCalculate.SetBuffer(gpuKernel, "ResultF", gpuCalculateResultF);
+            int[] resultTotal = new int[1024];
+            gpuCalculateResultTotal.SetData(resultTotal);
+            gpuCalculate.SetBuffer(gpuKernel, "ResultTotal", gpuCalculateResultTotal);
+
+            gpuCalculate.Dispatch(gpuKernel, 1024, 1, 1);
+
+            gpuCalculateResultA.GetData(resultA);
+            gpuCalculateResultB.GetData(resultB);
+            gpuCalculateResultC.GetData(resultC);
+            gpuCalculateResultD.GetData(resultD);
+            gpuCalculateResultE.GetData(resultE);
+            gpuCalculateResultF.GetData(resultF);
+            gpuCalculateResultTotal.GetData(resultTotal);
+            for (int j = 0; j < (i == lastIndex - 1 ? dataList.Count % 1024 : resultTotal.Length); ++j)
+            {
+                dataIndex = 1024 * i + j;
+                dataList[dataIndex].value[0] = resultA[j];
+                dataList[dataIndex].value[1] = resultB[j];
+                dataList[dataIndex].value[2] = resultC[j];
+                dataList[dataIndex].value[3] = resultD[j];
+                dataList[dataIndex].value[4] = resultE[j];
+                dataList[dataIndex].value[5] = resultF[j];
+                dataList[dataIndex].totalValue = resultTotal[j];
+                if (highestValue < resultTotal[j])
+                    highestValue = resultTotal[j];
+            }
+            resultA = null;
+            resultB = null;
+            resultC = null;
+            resultD = null;
+            resultE = null;
+            resultF = null;
+            resultTotal = null;
+        }
+        itemA = null;
+        itemB = null;
+        itemC = null;
+        itemD = null;
+        itemE = null;
+        itemF = null;
+        gpuCalculateValue.Release();
+        gpuCalculateSupply.Release();
+        gpuCalculatePopularity.Release();
+        gpuCalculateItemA.Release();
+        gpuCalculateItemB.Release();
+        gpuCalculateItemC.Release();
+        gpuCalculateItemD.Release();
+        gpuCalculateItemE.Release();
+        gpuCalculateItemF.Release();
+        gpuCalculateResultA.Release();
+        gpuCalculateResultB.Release();
+        gpuCalculateResultC.Release();
+        gpuCalculateResultD.Release();
+        gpuCalculateResultE.Release();
+        gpuCalculateResultF.Release();
+        gpuCalculateResultTotal.Release();
+        return dataList;
+    }
+
+    public SalesData GetHighestResultGPU(int _cycle, int[] _stack, int _groove, List<SalesData> dataList)
+    {
+        int gpuKernel = gpuCalculate.FindKernel("CSMain");
+        int[] value = new int[productList.Count];
+        for (int i = 0; i < value.Length; ++i)
+            value[i] = productList[i].GetValue();
+        gpuCalculateValue = new ComputeBuffer(50, sizeof(uint));
+        gpuCalculateValue.SetData(value);
+        gpuCalculate.SetBuffer(gpuKernel, "value", gpuCalculateValue);
+        int[] supply = new int[productList.Count];
+        for (int i = 0; i < supply.Length; ++i)
+            supply[i] = productList[i].GetSupplyValue(_cycle) + _stack[i];
+        gpuCalculateSupply = new ComputeBuffer(50, sizeof(int));
+        gpuCalculateSupply.SetData(supply);
+        gpuCalculate.SetBuffer(gpuKernel, "supply", gpuCalculateSupply);
+        float[] popularity = new float[productList.Count];
+        for (int i = 0; i < popularity.Length; ++i)
+            popularity[i] = GetPopularityValue(productList[i].GetPopularity(_cycle));
+        gpuCalculatePopularity = new ComputeBuffer(50, sizeof(float));
+        gpuCalculatePopularity.SetData(popularity);
+        gpuCalculate.SetBuffer(gpuKernel, "popularity", gpuCalculatePopularity);
+
+        gpuCalculate.SetInt("grooveNow", _groove);
+        gpuCalculate.SetInt("grooveMax", UserManager.instance.GetMaxGroove());
+        gpuCalculate.SetInt("workshopActive", GetActiveWorkshop());
+        gpuCalculate.SetFloat("workshopRank", GetWorkshopTierValue(GetHighestWorkshopTier()));
+        gpuCalculateItemA = new ComputeBuffer(1024, sizeof(int));
+        gpuCalculateItemB = new ComputeBuffer(1024, sizeof(int));
+        gpuCalculateItemC = new ComputeBuffer(1024, sizeof(int));
+        gpuCalculateItemD = new ComputeBuffer(1024, sizeof(int));
+        gpuCalculateItemE = new ComputeBuffer(1024, sizeof(int));
+        gpuCalculateItemF = new ComputeBuffer(1024, sizeof(int));
+        gpuCalculateResultA = new ComputeBuffer(1024, sizeof(uint));
+        gpuCalculateResultB = new ComputeBuffer(1024, sizeof(uint));
+        gpuCalculateResultC = new ComputeBuffer(1024, sizeof(uint));
+        gpuCalculateResultD = new ComputeBuffer(1024, sizeof(uint));
+        gpuCalculateResultE = new ComputeBuffer(1024, sizeof(uint));
+        gpuCalculateResultF = new ComputeBuffer(1024, sizeof(uint));
+        gpuCalculateResultTotal = new ComputeBuffer(1024, sizeof(uint));
+        int[] itemA = new int[1024];
+        int[] itemB = new int[1024];
+        int[] itemC = new int[1024];
+        int[] itemD = new int[1024];
+        int[] itemE = new int[1024];
+        int[] itemF = new int[1024];
+        int lastIndex = (dataList.Count % 1024 == 0 ? 0 : 1) + dataList.Count / 1024;
+        int dataIndex;
+        SalesData highestData = new SalesData();
+        for (int i = 0; i < lastIndex; ++i)
+        {
+            if (i == lastIndex - 1)
+            {
+                for (int j = 0; j < dataList.Count % 1024; ++j)
+                {
+                    dataIndex = 1024 * i + j;
+                    itemA[j] = dataList[dataIndex].product[0];
+                    itemB[j] = dataList[dataIndex].product[1];
+                    itemC[j] = dataList[dataIndex].product[2];
+                    itemD[j] = dataList[dataIndex].product[3];
+                    itemE[j] = dataList[dataIndex].product[4];
+                    itemF[j] = dataList[dataIndex].product[5];
+                }
+                for (int j = dataList.Count % 1024; j < 1024; ++j)
+                {
+                    itemA[j] = -1;
+                    itemB[j] = -1;
+                    itemC[j] = -1;
+                    itemD[j] = -1;
+                    itemE[j] = -1;
+                    itemF[j] = -1;
+                }
+            }
+            else
+            {
+                for (int j = 0; j < 1024; ++j)
+                {
+                    dataIndex = 1024 * i + j;
+                    itemA[j] = dataList[dataIndex].product[0];
+                    itemB[j] = dataList[dataIndex].product[1];
+                    itemC[j] = dataList[dataIndex].product[2];
+                    itemD[j] = dataList[dataIndex].product[3];
+                    itemE[j] = dataList[dataIndex].product[4];
+                    itemF[j] = dataList[dataIndex].product[5];
+                }
+            }
+            gpuCalculateItemA.SetData(itemA);
+            gpuCalculate.SetBuffer(gpuKernel, "ItemA", gpuCalculateItemA);
+            gpuCalculateItemB.SetData(itemB);
+            gpuCalculate.SetBuffer(gpuKernel, "ItemB", gpuCalculateItemB);
+            gpuCalculateItemC.SetData(itemC);
+            gpuCalculate.SetBuffer(gpuKernel, "ItemC", gpuCalculateItemC);
+            gpuCalculateItemD.SetData(itemD);
+            gpuCalculate.SetBuffer(gpuKernel, "ItemD", gpuCalculateItemD);
+            gpuCalculateItemE.SetData(itemE);
+            gpuCalculate.SetBuffer(gpuKernel, "ItemE", gpuCalculateItemE);
+            gpuCalculateItemF.SetData(itemF);
+            gpuCalculate.SetBuffer(gpuKernel, "ItemF", gpuCalculateItemF);
+
+            int[] resultA = new int[1024];
+            gpuCalculateResultA.SetData(resultA);
+            gpuCalculate.SetBuffer(gpuKernel, "ResultA", gpuCalculateResultA);
+            int[] resultB = new int[1024];
+            gpuCalculateResultB.SetData(resultB);
+            gpuCalculate.SetBuffer(gpuKernel, "ResultB", gpuCalculateResultB);
+            int[] resultC = new int[1024];
+            gpuCalculateResultC.SetData(resultC);
+            gpuCalculate.SetBuffer(gpuKernel, "ResultC", gpuCalculateResultC);
+            int[] resultD = new int[1024];
+            gpuCalculateResultD.SetData(resultD);
+            gpuCalculate.SetBuffer(gpuKernel, "ResultD", gpuCalculateResultD);
+            int[] resultE = new int[1024];
+            gpuCalculateResultE.SetData(resultE);
+            gpuCalculate.SetBuffer(gpuKernel, "ResultE", gpuCalculateResultE);
+            int[] resultF = new int[1024];
+            gpuCalculateResultF.SetData(resultF);
+            gpuCalculate.SetBuffer(gpuKernel, "ResultF", gpuCalculateResultF);
+            int[] resultTotal = new int[1024];
+            gpuCalculateResultTotal.SetData(resultTotal);
+            gpuCalculate.SetBuffer(gpuKernel, "ResultTotal", gpuCalculateResultTotal);
+
+            gpuCalculate.Dispatch(gpuKernel, 1024, 1, 1);
+
+            gpuCalculateResultA.GetData(resultA);
+            gpuCalculateResultB.GetData(resultB);
+            gpuCalculateResultC.GetData(resultC);
+            gpuCalculateResultD.GetData(resultD);
+            gpuCalculateResultE.GetData(resultE);
+            gpuCalculateResultF.GetData(resultF);
+            gpuCalculateResultTotal.GetData(resultTotal);
+            for (int j = 0; j < (i == lastIndex - 1 ? dataList.Count % 1024 : resultTotal.Length); ++j)
+            {
+                if (highestData.totalValue < resultTotal[j])
+                {
+                    dataIndex = 1024 * i + j;
+                    highestData.productSize = dataList[dataIndex].productSize;
+                    highestData.product[0] = dataList[dataIndex].product[0];
+                    highestData.product[1] = dataList[dataIndex].product[1];
+                    highestData.product[2] = dataList[dataIndex].product[2];
+                    highestData.product[3] = dataList[dataIndex].product[3];
+                    highestData.product[4] = dataList[dataIndex].product[4];
+                    highestData.product[5] = dataList[dataIndex].product[5];
+                    highestData.value[0] = resultA[j];
+                    highestData.value[1] = resultB[j];
+                    highestData.value[2] = resultC[j];
+                    highestData.value[3] = resultD[j];
+                    highestData.value[4] = resultE[j];
+                    highestData.value[5] = resultF[j];
+                    highestData.totalValue = resultTotal[j];
+                }
+            }
+            resultA = null;
+            resultB = null;
+            resultC = null;
+            resultD = null;
+            resultE = null;
+            resultF = null;
+            resultTotal = null;
+        }
+        itemA = null;
+        itemB = null;
+        itemC = null;
+        itemD = null;
+        itemE = null;
+        itemF = null;
+        value = null;
+        supply = null;
+        popularity = null;
+        gpuCalculateValue.Release();
+        gpuCalculateSupply.Release();
+        gpuCalculatePopularity.Release();
+        gpuCalculateItemA.Release();
+        gpuCalculateItemB.Release();
+        gpuCalculateItemC.Release();
+        gpuCalculateItemD.Release();
+        gpuCalculateItemE.Release();
+        gpuCalculateItemF.Release();
+        gpuCalculateResultA.Release();
+        gpuCalculateResultB.Release();
+        gpuCalculateResultC.Release();
+        gpuCalculateResultD.Release();
+        gpuCalculateResultE.Release();
+        gpuCalculateResultF.Release();
+        gpuCalculateResultTotal.Release();
+        gpuKernel = default;
+        return highestData;
     }
 
     public void UpdatePeakData()
@@ -1427,7 +4006,7 @@ public class Workshop : MonoBehaviour
             if (data.Length == 2)
             {
                 if (data[0] != "Cycle")
-                    form.SetPeak(int.Parse(data[0]), data[1] == "Strong" ? 1 : 2, pop[0], pop[1]);
+                    form.SetPeak(int.Parse(data[0]), data[1] == "Strong" ? 1 : data[1] == "Weak" ? 2 : 0, pop[0], pop[1]);
                 else
                 {
                     if (data[1] == "4/5")
@@ -1447,9 +4026,9 @@ public class Workshop : MonoBehaviour
         {
             for (int i = 0; i < 6; ++i)
             {
-                if (userManager.GetSalesData(i).product != null && userManager.GetSalesData(i).product.Length > 0)
+                if (userManager.GetSalesData(i).product != null && userManager.GetSalesData(i).productSize > 0)
                 {
-                    for (int j = 0; j < userManager.GetSalesData(i).product.Length; ++j)
+                    for (int j = 0; j < userManager.GetSalesData(i).productSize; ++j)
                     {
                         int value = (j == 0 ? 1 : 2) * GetActiveWorkshop();
                         for (int k = i + 1; k < 7; ++k)
@@ -1471,7 +4050,7 @@ public class Workshop : MonoBehaviour
             {
                 if (cycle < 6)
                 {
-                    for (int i = 0; i < userManager.GetSalesData(cycle).product.Length; ++i)
+                    for (int i = 0; i < userManager.GetSalesData(cycle).productSize; ++i)
                     {
                         int value = (i == 0 ? -1 : -2) * GetActiveWorkshop();
                         for (int j = cycle + 1; j < 7; ++j)
@@ -1479,24 +4058,24 @@ public class Workshop : MonoBehaviour
                     }
                 }
             }
-            userManager.SetSalesData(cycle, list.GetData());
-            nowSalesData.SetData(list.GetData());
+            userManager.SetSalesData(cycle, list.GetData()[0]);
+            nowSalesData.SetData(list.GetData()[0]);
             nowSalesData.textSalesProductList.text = list.textSalesProductList.text;
             nowSalesData.textSalesValue.text = list.textSalesValue.text;
             if (cycle < 6)
             {
-                for (int i = 0; i < list.GetData().product.Length; ++i)
+                for (int i = 0; i < list.GetData()[0].productSize; ++i)
                 {
                     int value = (i == 0 ? 1 : 2) * GetActiveWorkshop();
                     for (int j = cycle + 1; j < 7; ++j)
-                        productList[list.GetData().product[i]].AddSupply(j, value);
+                        productList[list.GetData()[0].product[i]].AddSupply(j, value);
                 }
             }
-            CalculateAllData();
+            CalculateAllData(false);
         }
     }
 
-    void CalculateAllData()
+    void CalculateAllData(bool _all)
     {
         UserManager userManager = UserManager.instance;
         ResourceManager resourceManager = ResourceManager.instance;
@@ -1504,28 +4083,28 @@ public class Workshop : MonoBehaviour
         totalValue = 0;
         for (int i = 0; i < 7; ++i)
         {
-            if (userManager.GetSalesData(i).product != null && userManager.GetSalesData(i).product.Length > 0)
+            if (userManager.GetSalesData(i).product != null && userManager.GetSalesData(i).productSize > 0)
             {
                 int dayValue = 0;
                 SalesData form = userManager.GetSalesData(i);
-                for (int j = 0; j < userManager.GetSalesData(i).product.Length; ++j)
-                    productList[userManager.GetSalesData(i).product[j]].ResetCount();
-                for (int j = 0; j < userManager.GetSalesData(i).product.Length; ++j)
+                int[] stack = new int[productList.Count];
+                for (int j = 0; j < userManager.GetSalesData(i).productSize; ++j)
                 {
-                    form.value[j] = GetProductValue(userManager.GetSalesData(i).product[j], j, i, nowGroove);
+                    form.value[j] = GetProductValue(userManager.GetSalesData(i).product[j], j, i, nowGroove, stack[userManager.GetSalesData(i).product[j]]);
                     dayValue += form.value[j];
-                    productList[userManager.GetSalesData(i).product[j]].AddCount(GetActiveWorkshop() * (j == 0 ? 1 : 2));
+                    stack[userManager.GetSalesData(i).product[j]] += GetActiveWorkshop() * (j == 0 ? 1 : 2);
                 }
                 form.totalValue = dayValue;
                 totalValue += dayValue;
                 userManager.SetSalesData(i, form);
-                nowGroove += (userManager.GetSalesData(i).product.Length - 1) * GetActiveWorkshop();
+                nowGroove += (userManager.GetSalesData(i).productSize - 1) * GetActiveWorkshop();
                 dropCycle.options[i].text = resourceManager.GetText(35).Replace("{0}", (i + 1).ToString()) + $" [{userManager.GetSalesData(i).totalValue * GetActiveWorkshop()}]";
             }
             else
                 dropCycle.options[i].text = resourceManager.GetText(35).Replace("{0}", (i + 1).ToString());
         }
         textTotalValue.text = $"{resourceManager.GetText(50)} : {totalValue * GetActiveWorkshop()}";
-        dropCycle.captionText.text = resourceManager.GetText(35).Replace("{0}", (cycle + 1).ToString()) + (userManager.GetSalesData(cycle).totalValue > 0 ? $" [{userManager.GetSalesData(cycle).totalValue * GetActiveWorkshop()}]" : "");
+        if (!_all)
+            dropCycle.captionText.text = resourceManager.GetText(35).Replace("{0}", (cycle + 1).ToString()) + (userManager.GetSalesData(cycle).totalValue > 0 ? $" [{userManager.GetSalesData(cycle).totalValue * GetActiveWorkshop()}]" : "");
     }
 }
