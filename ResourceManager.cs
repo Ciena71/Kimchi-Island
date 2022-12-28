@@ -314,6 +314,10 @@ public class ResourceManager
 
     public string GetAnimalName(int index) => animalData[index][UserManager.instance.GetDataLanguage().ToString()].ToString();
 
+    public int GetAnimalNormalLeaving(int index) => (int)animalData[index]["Material 1"];
+
+    public int GetAnimalRareLeaving(int index) => (int)animalData[index]["Material 2"];
+
     public string GetSize(int index) => sizeData[index][UserManager.instance.GetLanguage().ToString()].ToString();
 
     public string GetWeather(int index) => weatherData[index][UserManager.instance.GetDataLanguage().ToString()].ToString();
