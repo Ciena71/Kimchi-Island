@@ -1,6 +1,7 @@
+using System;
 using UnityEngine;
 
-[System.Serializable]
+[Serializable]
 public class UserData
 {
     public SystemLanguage language = SystemLanguage.English;
@@ -18,6 +19,8 @@ public class UserData
     public bool[] productBlacklistNew = new bool[50];
     public SalesData[] salesData = new SalesData[7];
     public long dataWeek;
+    public int cpuThread = Environment.ProcessorCount >= 8 ? Environment.ProcessorCount - 4 : Environment.ProcessorCount - 1;
+    public bool gpuCalculate;
 
     public int animalAlarmList;
     public int[] inventory = new int[61];
