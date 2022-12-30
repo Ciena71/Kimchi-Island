@@ -21,6 +21,7 @@ public class UserData
     public long dataWeek;
     public int cpuThread = Environment.ProcessorCount >= 8 ? Environment.ProcessorCount - 4 : Environment.ProcessorCount - 1;
     public bool gpuCalculate;
+    public int limitEnableCount = 100;
 
     public int animalAlarmList;
     public int[] inventory = new int[61];
