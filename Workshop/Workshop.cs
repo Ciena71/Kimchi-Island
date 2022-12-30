@@ -80,6 +80,10 @@ public class Workshop : MonoBehaviour
     public InputField inputCPUThread;
     public Text textGPU;
     public Toggle toggleGPU;
+    public Text textMaxCount;
+    public Text textMaxCountValue;
+    public Text textLimitCount;
+    public InputField inputLimitCount;
     public Button btnCrimeTime;
     public Text textCrimeTime;
 
@@ -89,6 +93,7 @@ public class Workshop : MonoBehaviour
     bool[] reverse = new bool[5];
     int sort = 0;
     int totalValue;
+    int maxEnableCount;
 
     string copySupplyPacket;
     string copyPopularityPacket;
@@ -127,6 +132,7 @@ public class Workshop : MonoBehaviour
             product.SetDefaultData(i);
             productList.Add(product);
         }
+        maxEnableCount = GetEnableList(false).Count;
         inputRank.text = userManager.GetPlayerRank().ToString();
         inputRank.onEndEdit.AddListener((data) =>
         {
@@ -275,7 +281,7 @@ public class Workshop : MonoBehaviour
                 inputGrooveNow.text = groove.ToString();
                 scrollProductList.gameObject.SetActive(false);
                 objRangeCycle.SetActive(true);
-                rectTopSalesList.offsetMax = new Vector2(rectTopSalesList.offsetMax.x, -300);
+                rectTopSalesList.offsetMax = new Vector2(rectTopSalesList.offsetMax.x, -350);
             }
             else
             {
@@ -540,9 +546,9 @@ public class Workshop : MonoBehaviour
                 SalesDataList highestResult = new SalesDataList();
                 for (int i = 0; i < 3; ++i)
                     highestResult.salesData[i] = new SalesData();
-                if(userManager.IsGPUCalculate())
+                if (userManager.IsGPUCalculate())
                 {
-                    List<SalesData> dataList = GetEnableList();
+                    List<SalesData> dataList = GetEnableList(userManager.GetGroovePriority());
                     if (count >= 3)
                     {
                         EachResultList(4, new int[50], userManager.GetCurrentGroove(), false, (day5) =>
@@ -680,6 +686,11 @@ public class Workshop : MonoBehaviour
                 else
                 {
                     List<SalesData> salesDataList = GetResultList(4, new int[productList.Count], userManager.GetCurrentGroove(), false);
+                    if (userManager.GetLimitCount() > 0 && salesDataList.Count > userManager.GetLimitCount())
+                    {
+                        salesDataList.Sort((a, b) => b.totalValue.CompareTo(a.totalValue));
+                        salesDataList.RemoveRange(userManager.GetLimitCount(), salesDataList.Count - userManager.GetLimitCount());
+                    }
                     if (count >= 3)
                     {
                         Parallel.ForEach(salesDataList, new ParallelOptions { MaxDegreeOfParallelism = userManager.GetCPUThread() }, day5 =>
@@ -687,40 +698,83 @@ public class Workshop : MonoBehaviour
                             int[] stackA = new int[productList.Count];
                             for (int i = 0; i < day5.productSize; ++i)
                                 stackA[day5.product[i]] += i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2;
-                            EachResultList(5, stackA, userManager.GetCurrentGroove() + (day5.productSize - 1) * GetActiveWorkshop(), false, (day6) =>
+                            List<SalesData> salesDataList6 = GetResultList(5, stackA, userManager.GetCurrentGroove() + (day5.productSize - 1) * GetActiveWorkshop(), false);
+                            if (userManager.GetLimitCount() > 0 && salesDataList6.Count > userManager.GetLimitCount())
                             {
-                                int[] stackB = new int[productList.Count];
-                                for (int i = 0; i < day5.productSize; ++i)
-                                    stackB[day5.product[i]] += i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2;
-                                for (int i = 0; i < day6.productSize; ++i)
-                                    stackB[day6.product[i]] += i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2;
-                                EachResultList(6, stackB, userManager.GetCurrentGroove() + (day5.productSize + day6.productSize - 2) * GetActiveWorkshop(), false, (day7) =>
+                                salesDataList6.Sort((a, b) => b.totalValue.CompareTo(a.totalValue));
+                                salesDataList6.RemoveRange(userManager.GetLimitCount(), salesDataList6.Count - userManager.GetLimitCount());
+                                salesDataList6.ForEach((day6) =>
                                 {
-                                    if (highestResult.totalValue < day5.totalValue + day6.totalValue + day7.totalValue)
+                                    int[] stackB = new int[productList.Count];
+                                    for (int i = 0; i < day5.productSize; ++i)
+                                        stackB[day5.product[i]] += i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2;
+                                    for (int i = 0; i < day6.productSize; ++i)
+                                        stackB[day6.product[i]] += i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2;
+                                    EachResultList(6, stackB, userManager.GetCurrentGroove() + (day5.productSize + day6.productSize - 2) * GetActiveWorkshop(), false, (day7) =>
                                     {
-                                        highestResult.salesData[0].productSize = day5.productSize;
-                                        for (int i = 0; i < day5.productSize; ++i)
-                                            highestResult.salesData[0].product[i] = day5.product[i];
-                                        for (int i = 0; i < day5.productSize; ++i)
-                                            highestResult.salesData[0].value[i] = day5.value[i];
-                                        highestResult.salesData[0].totalValue = day5.totalValue;
-                                        highestResult.salesData[1].productSize = day6.productSize;
-                                        for (int i = 0; i < day6.productSize; ++i)
-                                            highestResult.salesData[1].product[i] = day6.product[i];
-                                        for (int i = 0; i < day6.productSize; ++i)
-                                            highestResult.salesData[1].value[i] = day6.value[i];
-                                        highestResult.salesData[1].totalValue = day6.totalValue;
-                                        highestResult.salesData[2].productSize = day7.productSize;
-                                        for (int i = 0; i < day7.productSize; ++i)
-                                            highestResult.salesData[2].product[i] = day7.product[i];
-                                        for (int i = 0; i < day7.productSize; ++i)
-                                            highestResult.salesData[2].value[i] = day7.value[i];
-                                        highestResult.salesData[2].totalValue = day7.totalValue;
-                                        highestResult.totalValue = day5.totalValue + day6.totalValue + day7.totalValue;
-                                    }
+                                        if (highestResult.totalValue < day5.totalValue + day6.totalValue + day7.totalValue)
+                                        {
+                                            highestResult.salesData[0].productSize = day5.productSize;
+                                            for (int i = 0; i < day5.productSize; ++i)
+                                                highestResult.salesData[0].product[i] = day5.product[i];
+                                            for (int i = 0; i < day5.productSize; ++i)
+                                                highestResult.salesData[0].value[i] = day5.value[i];
+                                            highestResult.salesData[0].totalValue = day5.totalValue;
+                                            highestResult.salesData[1].productSize = day6.productSize;
+                                            for (int i = 0; i < day6.productSize; ++i)
+                                                highestResult.salesData[1].product[i] = day6.product[i];
+                                            for (int i = 0; i < day6.productSize; ++i)
+                                                highestResult.salesData[1].value[i] = day6.value[i];
+                                            highestResult.salesData[1].totalValue = day6.totalValue;
+                                            highestResult.salesData[2].productSize = day7.productSize;
+                                            for (int i = 0; i < day7.productSize; ++i)
+                                                highestResult.salesData[2].product[i] = day7.product[i];
+                                            for (int i = 0; i < day7.productSize; ++i)
+                                                highestResult.salesData[2].value[i] = day7.value[i];
+                                            highestResult.salesData[2].totalValue = day7.totalValue;
+                                            highestResult.totalValue = day5.totalValue + day6.totalValue + day7.totalValue;
+                                        }
+                                    });
+                                    stackB = null;
                                 });
-                                stackB = null;
-                            });
+                            }
+                            else
+                            {
+                                EachResultList(5, stackA, userManager.GetCurrentGroove() + (day5.productSize - 1) * GetActiveWorkshop(), false, (day6) =>
+                                {
+                                    int[] stackB = new int[productList.Count];
+                                    for (int i = 0; i < day5.productSize; ++i)
+                                        stackB[day5.product[i]] += i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2;
+                                    for (int i = 0; i < day6.productSize; ++i)
+                                        stackB[day6.product[i]] += i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2;
+                                    EachResultList(6, stackB, userManager.GetCurrentGroove() + (day5.productSize + day6.productSize - 2) * GetActiveWorkshop(), false, (day7) =>
+                                    {
+                                        if (highestResult.totalValue < day5.totalValue + day6.totalValue + day7.totalValue)
+                                        {
+                                            highestResult.salesData[0].productSize = day5.productSize;
+                                            for (int i = 0; i < day5.productSize; ++i)
+                                                highestResult.salesData[0].product[i] = day5.product[i];
+                                            for (int i = 0; i < day5.productSize; ++i)
+                                                highestResult.salesData[0].value[i] = day5.value[i];
+                                            highestResult.salesData[0].totalValue = day5.totalValue;
+                                            highestResult.salesData[1].productSize = day6.productSize;
+                                            for (int i = 0; i < day6.productSize; ++i)
+                                                highestResult.salesData[1].product[i] = day6.product[i];
+                                            for (int i = 0; i < day6.productSize; ++i)
+                                                highestResult.salesData[1].value[i] = day6.value[i];
+                                            highestResult.salesData[1].totalValue = day6.totalValue;
+                                            highestResult.salesData[2].productSize = day7.productSize;
+                                            for (int i = 0; i < day7.productSize; ++i)
+                                                highestResult.salesData[2].product[i] = day7.product[i];
+                                            for (int i = 0; i < day7.productSize; ++i)
+                                                highestResult.salesData[2].value[i] = day7.value[i];
+                                            highestResult.salesData[2].totalValue = day7.totalValue;
+                                            highestResult.totalValue = day5.totalValue + day6.totalValue + day7.totalValue;
+                                        }
+                                    });
+                                    stackB = null;
+                                });
+                            }
                             stackA = null;
                         });
                     }
@@ -776,6 +830,11 @@ public class Workshop : MonoBehaviour
                             stack = null;
                         });
                         salesDataList = GetResultList(5, new int[productList.Count], userManager.GetCurrentGroove(), false);
+                        if (userManager.GetLimitCount() > 0 && salesDataList.Count > userManager.GetLimitCount())
+                        {
+                            salesDataList.Sort((a, b) => b.totalValue.CompareTo(a.totalValue));
+                            salesDataList.RemoveRange(userManager.GetLimitCount(), salesDataList.Count - userManager.GetLimitCount());
+                        }
                         Parallel.ForEach(salesDataList, new ParallelOptions { MaxDegreeOfParallelism = userManager.GetCPUThread() }, day6 =>
                         {
                             int[] stack = new int[productList.Count];
@@ -835,6 +894,7 @@ public class Workshop : MonoBehaviour
                 data.textSalesProductList.text = productListString;
                 data.textSalesValue.text = productValueString;
                 salesList.Add(salesListObject);
+                SystemCore.instance.PlayAlarm();
             }
         });
         btnNowSales.onClick.AddListener(() =>
@@ -870,6 +930,19 @@ public class Workshop : MonoBehaviour
         {
             userManager.SetGPUCalculate(value);
         });
+        textMaxCountValue.text = maxEnableCount.ToString();
+        if (userManager.GetLimitCount() > maxEnableCount)
+            userManager.SetLimitCount(maxEnableCount);
+        inputLimitCount.text = userManager.GetLimitCount().ToString();
+        inputLimitCount.onEndEdit.AddListener((value) =>
+        {
+            if (int.TryParse(value, out int result))
+            {
+                if (result < 0) result = 0;
+                if (result > maxEnableCount) result = maxEnableCount;
+                userManager.SetLimitCount(result);
+            }
+        });
         btnCrimeTime.onClick.AddListener(() =>
         {
             UserManager userManager = UserManager.instance;
@@ -877,12 +950,12 @@ public class Workshop : MonoBehaviour
             {
                 if (userManager.GetSalesData(k).product != null)
                 {
-                        for (int i = 0; i < userManager.GetSalesData(k).productSize; ++i)
-                        {
-                            int value = (i == 0 ? -1 : -2) * GetActiveWorkshop();
-                            for (int j = k + 1; j < 7; ++j)
-                                productList[userManager.GetSalesData(k).product[i]].AddSupply(j, value);
-                        }
+                    for (int i = 0; i < userManager.GetSalesData(k).productSize; ++i)
+                    {
+                        int value = (i == 0 ? -1 : -2) * GetActiveWorkshop();
+                        for (int j = k + 1; j < 7; ++j)
+                            productList[userManager.GetSalesData(k).product[i]].AddSupply(j, value);
+                    }
                 }
             }
             userManager.SetSalesData(0, new SalesData());
@@ -1191,6 +1264,8 @@ public class Workshop : MonoBehaviour
         textCPUThreadMax.text = resourceManager.GetText(54);
         textCPUThread.text = resourceManager.GetText(55);
         textGPU.text = resourceManager.GetText(57);
+        textMaxCount.text = resourceManager.GetText(61);
+        textLimitCount.text = resourceManager.GetText(62);
         textCrimeTime.text = resourceManager.GetText(58);
         productList.ForEach((product) =>
         {
@@ -2847,13 +2922,13 @@ public class Workshop : MonoBehaviour
         }
     }
 
-    List<SalesData> GetEnableList()
+    List<SalesData> GetEnableList(bool _groovePriority)
     {
         List<SalesData> SalesDataList = new List<SalesData>();
         SalesData salesdata;
         int checker;
         UserManager userManager = UserManager.instance;
-        if (userManager.GetCurrentGroove() < userManager.GetMaxGroove() && userManager.GetGroovePriority())
+        if (userManager.GetCurrentGroove() < userManager.GetMaxGroove() && _groovePriority)
         {
             if (userManager.GetCurrentGroove() + (GetActiveWorkshop() * 6) <= userManager.GetMaxGroove() + (GetActiveWorkshop() - 1))
             {
@@ -3397,7 +3472,8 @@ public class Workshop : MonoBehaviour
 
     public List<SalesData> GetResultListGPU(int _cycle, int[] _stack, int _groove, List<SalesData> enableList)
     {
-        List<SalesData> dataList = GetEnableList().ConvertAll(form => new SalesData(form));
+        UserManager userManager = UserManager.instance;
+        List<SalesData> dataList = GetEnableList(userManager.GetGroovePriority()).ConvertAll(form => new SalesData(form));
         int gpuKernel = gpuCalculate.FindKernel("CSMain");
         int[] value = new int[productList.Count];
         for (int i = 0; i < value.Length; ++i)
@@ -3419,7 +3495,7 @@ public class Workshop : MonoBehaviour
         gpuCalculate.SetBuffer(gpuKernel, "popularity", gpuCalculatePopularity);
 
         gpuCalculate.SetInt("grooveNow", _groove);
-        gpuCalculate.SetInt("grooveMax", UserManager.instance.GetMaxGroove());
+        gpuCalculate.SetInt("grooveMax", userManager.GetMaxGroove());
         gpuCalculate.SetInt("workshopActive", GetActiveWorkshop());
         gpuCalculate.SetFloat("workshopRank", GetWorkshopTierValue(GetHighestWorkshopTier()));
         gpuCalculateItemA = new ComputeBuffer(1024, sizeof(int));
