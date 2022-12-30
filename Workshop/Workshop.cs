@@ -281,7 +281,7 @@ public class Workshop : MonoBehaviour
                 inputGrooveNow.text = groove.ToString();
                 scrollProductList.gameObject.SetActive(false);
                 objRangeCycle.SetActive(true);
-                rectTopSalesList.offsetMax = new Vector2(rectTopSalesList.offsetMax.x, -350);
+                rectTopSalesList.offsetMax = new Vector2(rectTopSalesList.offsetMax.x, -400);
             }
             else
             {
