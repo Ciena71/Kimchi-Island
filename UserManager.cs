@@ -191,6 +191,15 @@ public class UserManager
         SaveData();
     }
 
+    public int GetLimitCount() => userData.limitEnableCount;
+    public void SetLimitCount(int value)
+    {
+        if (value < 0)
+            value = 0;
+        userData.limitEnableCount = value;
+        SaveData();
+    }
+
     void LoadData()
     {
         if (IsFileExist())
