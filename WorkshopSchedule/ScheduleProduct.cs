@@ -41,7 +41,7 @@ public class ScheduleProduct : MonoBehaviour
     public void UpdateSchedule()
     {
         ResourceManager resourceManager = ResourceManager.instance;
-        supply[0] = (int)resourceManager.GetSupplyPattern()[index]["Supply1"];
+        supply[0] = resourceManager.GetSupplyPattern()[index]["Supply1"].ToString().Length > 0 ? (int)resourceManager.GetSupplyPattern()[index]["Supply1"] : 0;
         supply[1] = resourceManager.GetSupplyPattern()[index]["Supply2"].ToString().Length > 0 ? (int)resourceManager.GetSupplyPattern()[index]["Supply2"] : (int)resourceManager.GetSupplyPattern()[index]["Prediction2"];
         supply[2] = resourceManager.GetSupplyPattern()[index]["Supply3"].ToString().Length > 0 ? (int)resourceManager.GetSupplyPattern()[index]["Supply3"] : (int)resourceManager.GetSupplyPattern()[index]["Prediction3"];
         supply[3] = resourceManager.GetSupplyPattern()[index]["Supply4"].ToString().Length > 0 ? (int)resourceManager.GetSupplyPattern()[index]["Supply4"] : (int)resourceManager.GetSupplyPattern()[index]["Prediction4"];
