@@ -23,6 +23,7 @@ public class Product : MonoBehaviour
     bool active;
     int time;
     int value;
+    int salesValue;
     int quantity;
     int category;
     int rank;
@@ -42,6 +43,7 @@ public class Product : MonoBehaviour
         quantity = resourceManager.GetProductQuantity(index);
         textProductQuantity.text = quantity.ToString();
         value = resourceManager.GetProductValue(index);
+        salesValue = resourceManager.GetProductSalesValue(index);
         textProductValue.text = value.ToString();
         category = resourceManager.GetProductCategory(index);
         textProductCategory.text = resourceManager.GetProductCategoryName(index);
@@ -81,40 +83,12 @@ public class Product : MonoBehaviour
             textProductSupply.gameObject.SetActive(true);
         });
     }
-    /*Discarded
-    public void SetPacketData(byte pop1, byte pop2, byte value, int cycle)
-    {
-        ResourceManager resourceManager = ResourceManager.instance;
-        if ((value & (1 << 6)) == (1 << 6))
-            supply[0] = 5;
-        else if ((value & (1 << 5) + (1 << 4)) == (1 << 5) + (1 << 4))
-            supply[0] = 4;
-        else if ((value & (1 << 5)) == (1 << 5))
-            supply[0] = 3;
-        else if ((value & (1 << 4)) == (1 << 4))
-            supply[0] = 2;
-        else
-            supply[0] = 1;
-        popularity[0] = resourceManager.GetStatusData(pop1, index);
-        popularity[1] = resourceManager.GetStatusData(pop2, index);
-        if ((value & (1 << 2)) == (1 << 2))
-            demandShift = 5;
-        else if ((value & (1 << 1) + (1 << 0)) == (1 << 1) + (1 << 0))
-            demandShift = 4;
-        else if ((value & (1 << 1)) == (1 << 1))
-            demandShift = 3;
-        else if ((value & (1 << 0)) == (1 << 0))
-            demandShift = 2;
-        else
-            demandShift = 1;
-        textProductPopularity.text = resourceManager.GetStatusName(GetPopularity(cycle));
-        imgProductPopularity.sprite = Resources.Load<Sprite>($"Sprite/Status/{GetPopularity(cycle)}");
-    }*/
 
     public void SetActive(bool check) => active = check;
     public bool IsActive() => (UserManager.instance.GetPlayerRank() >= rank ? active : false);
     public int GetTime() => time;
     public int GetValue() => value;
+    public int GetSalesValue() => salesValue;
     public int GetQuantity() => quantity;
     public int GetCategory() => category;
     public byte GetPopularity(int cycle)
