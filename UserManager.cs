@@ -108,10 +108,24 @@ public class UserManager
         SaveData();
     }
 
-    public int GetWorkshopTier(int index) => userData.workshopTier[index];
-    public void SetWorkshopTier(int index, int value)
+    public int GetWorkshopRank() => userData.workshopRank;
+    public void SetWorkshopRank(int value)
     {
-        userData.workshopTier[index] = value;
+        userData.workshopRank = value;
+        SaveData();
+    }
+
+    public int GetWorkshopActive() => userData.workshopActive;
+    public void SetWorkshopActive(int value)
+    {
+        userData.workshopActive = value;
+        SaveData();
+    }
+
+    public bool GetNetProfit() => userData.netProfit;
+    public void SetNetProfit(bool value)
+    {
+        userData.netProfit = value;
         SaveData();
     }
 
