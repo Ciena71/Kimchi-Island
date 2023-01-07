@@ -22,6 +22,14 @@ public class SalesData
     public int productSize = 0;
     public int[] value = new int[6];
     public int totalValue = 0;
+
+    public void Clear()
+    {
+        product = null;
+        productSize = default;
+        value = null;
+        totalValue = default;
+    }
 }
 
 public class SalesDataList
@@ -40,14 +48,14 @@ public class Workshop : MonoBehaviour
     public InputField inputGrooveNow;
     public Text textGrooveMax;
     public InputField inputGrooveMax;
-    public Text textTier1;
-    public InputField inputTier1;
-    public Text textTier2;
-    public InputField inputTier2;
-    public Text textTier3;
-    public InputField inputTier3;
+    public Text textWorkshopRank;
+    public InputField inputWorkshopRank;
+    public Text textWorkshopActive;
+    public InputField inputWorkshopActive;
     public Text textGroovePriority;
     public Toggle toggleGroovePriority;
+    public Text textNetProfit;
+    public Toggle toggleNetProfit;
     public Text textCycle;
     public Dropdown dropCycle;
     public ScrollRect scrollProductList;
@@ -173,38 +181,55 @@ public class Workshop : MonoBehaviour
                     inputGrooveMax.text = userManager.GetMaxGroove().ToString();
             }
         });
-        inputTier1.text = userManager.GetWorkshopTier(0).ToString();
-        inputTier1.onEndEdit.AddListener((data) =>
+        inputWorkshopRank.text = userManager.GetWorkshopRank().ToString();
+        inputWorkshopRank.onEndEdit.AddListener((data) =>
         {
             if (int.TryParse(data, out int value))
             {
                 if (1 <= value && value <= 3)
-                    userManager.SetWorkshopTier(0, value);
+                    userManager.SetWorkshopRank(value);
                 else
-                    inputTier1.text = userManager.GetWorkshopTier(0).ToString();
+                    inputWorkshopRank.text = userManager.GetWorkshopRank().ToString();
             }
         });
-        inputTier2.text = userManager.GetWorkshopTier(1).ToString();
-        inputTier2.onEndEdit.AddListener((data) =>
+        inputWorkshopActive.text = userManager.GetWorkshopActive().ToString();
+        inputWorkshopActive.onEndEdit.AddListener((data) =>
         {
             if (int.TryParse(data, out int value))
             {
-                if (0 <= value && value <= 3)
-                    userManager.SetWorkshopTier(1, value);
+                if (1 <= value && value <= 3)
+                    userManager.SetWorkshopActive(value);
                 else
-                    inputTier2.text = userManager.GetWorkshopTier(1).ToString();
+                    inputWorkshopActive.text = userManager.GetWorkshopActive().ToString();
             }
         });
-        inputTier3.text = userManager.GetWorkshopTier(2).ToString();
-        inputTier3.onEndEdit.AddListener((data) =>
+        toggleNetProfit.isOn = userManager.GetNetProfit();
+        toggleNetProfit.onValueChanged.AddListener((value) =>
         {
-            if (int.TryParse(data, out int value))
+            userManager.SetNetProfit(value);
+            if (cycle < 7)
             {
-                if (0 <= value && value <= 3)
-                    userManager.SetWorkshopTier(2, value);
-                else
-                    inputTier3.text = userManager.GetWorkshopTier(2).ToString();
+                CalculateAllData(false);
+                if (userManager.GetSalesData(cycle).product != null && userManager.GetSalesData(cycle).productSize > 0)
+                {
+                    string productListString = "";
+                    string productValueString = $"{userManager.GetSalesData(cycle).totalValue * userManager.GetWorkshopActive()} | {userManager.GetSalesData(cycle).totalValue} = ";
+                    for (int i = 0; i < userManager.GetSalesData(cycle).productSize; ++i)
+                    {
+                        if (i > 0)
+                        {
+                            productListString += " + ";
+                            productValueString += " + ";
+                        }
+                        productListString += $"<sprite={userManager.GetSalesData(cycle).product[i]}> {resourceManager.GetProductName(userManager.GetSalesData(cycle).product[i])}";
+                        productValueString += userManager.GetSalesData(cycle).value[i].ToString();
+                    }
+                    nowSalesData.textSalesProductList.text = productListString;
+                    nowSalesData.textSalesValue.text = productValueString;
+                }
             }
+            else
+                CalculateAllData(true);
         });
         toggleGroovePriority.isOn = userManager.GetGroovePriority();
         toggleGroovePriority.onValueChanged.AddListener((value) =>
@@ -228,7 +253,7 @@ public class Workshop : MonoBehaviour
                 if (userManager.GetSalesData(cycle).product != null && userManager.GetSalesData(cycle).productSize > 0)
                 {
                     productListString = "";
-                    productValueString = $"{userManager.GetSalesData(cycle).totalValue * GetActiveWorkshop()} | {userManager.GetSalesData(cycle).totalValue} = ";
+                    productValueString = $"{userManager.GetSalesData(cycle).totalValue * userManager.GetWorkshopActive()} | {userManager.GetSalesData(cycle).totalValue} = ";
                     for (int i = 0; i < userManager.GetSalesData(cycle).productSize; ++i)
                     {
                         if (i > 0)
@@ -246,7 +271,7 @@ public class Workshop : MonoBehaviour
                     for (int i = 0; i < cycle; ++i)
                     {
                         int dummy = (userManager.GetSalesData(i).product != null ? userManager.GetSalesData(i).productSize : 0);
-                        groove += GetActiveWorkshop() * (dummy >= 2 ? (dummy - 1) : 0);
+                        groove += userManager.GetWorkshopActive() * (dummy >= 2 ? (dummy - 1) : 0);
                     }
                 }
                 if (groove > userManager.GetMaxGroove())
@@ -272,7 +297,7 @@ public class Workshop : MonoBehaviour
                     for (int i = 0; i < 4; ++i)
                     {
                         int dummy = (userManager.GetSalesData(i).product != null ? userManager.GetSalesData(i).productSize : 0);
-                        groove += GetActiveWorkshop() * (dummy >= 2 ? (dummy - 1) : 0);
+                        groove += userManager.GetWorkshopActive() * (dummy >= 2 ? (dummy - 1) : 0);
                     }
                 }
                 if (groove > userManager.GetMaxGroove())
@@ -475,7 +500,7 @@ public class Workshop : MonoBehaviour
         if (userManager.GetSalesData(0).product != null && userManager.GetSalesData(0).productSize > 0)
         {
             productListString = "";
-            productValueString = $"{userManager.GetSalesData(0).totalValue * GetActiveWorkshop()} | {userManager.GetSalesData(0).totalValue} = ";
+            productValueString = $"{userManager.GetSalesData(0).totalValue * userManager.GetWorkshopActive()} | {userManager.GetSalesData(0).totalValue} = ";
             for (int i = 0; i < userManager.GetSalesData(0).productSize; ++i)
             {
                 if (i > 0)
@@ -508,7 +533,7 @@ public class Workshop : MonoBehaviour
                         SalesList data = salesListObject.GetComponent<SalesList>();
                         data.SetData(dummySalesData);
                         string productListString = "";
-                        string productValueString = $"{dummySalesData.totalValue * GetActiveWorkshop()} | {dummySalesData.totalValue} = ";
+                        string productValueString = $"{dummySalesData.totalValue * userManager.GetWorkshopActive()} | {dummySalesData.totalValue} = ";
                         for (int i = 0; i < dummySalesData.productSize; ++i)
                         {
                             if (i > 0)
@@ -555,15 +580,15 @@ public class Workshop : MonoBehaviour
                         {
                             int[] stackA = new int[productList.Count];
                             for (int i = 0; i < day5.productSize; ++i)
-                                stackA[day5.product[i]] += i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2;
-                            EachResultList(5, stackA, userManager.GetCurrentGroove() + (day5.productSize - 1) * GetActiveWorkshop(), false, (day6) =>
+                                stackA[day5.product[i]] += i == 0 ? userManager.GetWorkshopActive() : userManager.GetWorkshopActive() * 2;
+                            EachResultList(5, stackA, userManager.GetCurrentGroove() + (day5.productSize - 1) * userManager.GetWorkshopActive(), false, (day6) =>
                             {
                                 int[] stackB = new int[productList.Count];
                                 for (int i = 0; i < day5.productSize; ++i)
-                                    stackB[day5.product[i]] += i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2;
+                                    stackB[day5.product[i]] += i == 0 ? userManager.GetWorkshopActive() : userManager.GetWorkshopActive() * 2;
                                 for (int i = 0; i < day6.productSize; ++i)
-                                    stackB[day6.product[i]] += i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2;
-                                EachResultList(6, stackB, userManager.GetCurrentGroove() + (day5.productSize + day6.productSize - 2) * GetActiveWorkshop(), false, (day7) =>
+                                    stackB[day6.product[i]] += i == 0 ? userManager.GetWorkshopActive() : userManager.GetWorkshopActive() * 2;
+                                EachResultList(6, stackB, userManager.GetCurrentGroove() + (day5.productSize + day6.productSize - 2) * userManager.GetWorkshopActive(), false, (day7) =>
                                 {
                                     if (highestResult.totalValue < day5.totalValue + day6.totalValue + day7.totalValue)
                                     {
@@ -599,8 +624,8 @@ public class Workshop : MonoBehaviour
                         {
                             int[] stack = new int[productList.Count];
                             for (int i = 0; i < day5.productSize; ++i)
-                                stack[day5.product[i]] += (i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2);
-                            SalesData day6 = GetHighestResultGPU(5, stack, userManager.GetCurrentGroove() + (day5.productSize - 1) * GetActiveWorkshop(), dataList);
+                                stack[day5.product[i]] += (i == 0 ? userManager.GetWorkshopActive() : userManager.GetWorkshopActive() * 2);
+                            SalesData day6 = GetHighestResultGPU(5, stack, userManager.GetCurrentGroove() + (day5.productSize - 1) * userManager.GetWorkshopActive(), dataList);
                             if (highestResult.totalValue < day5.totalValue + day6.totalValue)
                             {
                                 highestResult.salesData[0].productSize = day5.productSize;
@@ -624,7 +649,7 @@ public class Workshop : MonoBehaviour
                             day6.totalValue = default;
                             day6.value = null;
                             day6 = null;
-                            SalesData day7 = GetHighestResultGPU(6, stack, userManager.GetCurrentGroove() + (day5.productSize - 1) * GetActiveWorkshop(), dataList);
+                            SalesData day7 = GetHighestResultGPU(6, stack, userManager.GetCurrentGroove() + (day5.productSize - 1) * userManager.GetWorkshopActive(), dataList);
                             if (highestResult.totalValue < day5.totalValue + day7.totalValue)
                             {
                                 highestResult.salesData[0].productSize = day5.productSize;
@@ -654,8 +679,8 @@ public class Workshop : MonoBehaviour
                         {
                             int[] stack = new int[productList.Count];
                             for (int i = 0; i < day6.productSize; ++i)
-                                stack[day6.product[i]] += (i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2);
-                            SalesData day7 = GetHighestResultGPU(6, stack, userManager.GetCurrentGroove() + (day6.productSize - 1) * GetActiveWorkshop(), dataList);
+                                stack[day6.product[i]] += (i == 0 ? userManager.GetWorkshopActive() : userManager.GetWorkshopActive() * 2);
+                            SalesData day7 = GetHighestResultGPU(6, stack, userManager.GetCurrentGroove() + (day6.productSize - 1) * userManager.GetWorkshopActive(), dataList);
                             if (highestResult.totalValue < day6.totalValue + day7.totalValue)
                             {
                                 highestResult.salesData[0].productSize = 0;
@@ -697,20 +722,25 @@ public class Workshop : MonoBehaviour
                         {
                             int[] stackA = new int[productList.Count];
                             for (int i = 0; i < day5.productSize; ++i)
-                                stackA[day5.product[i]] += i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2;
-                            List<SalesData> salesDataList6 = GetResultList(5, stackA, userManager.GetCurrentGroove() + (day5.productSize - 1) * GetActiveWorkshop(), false);
+                                stackA[day5.product[i]] += i == 0 ? userManager.GetWorkshopActive() : userManager.GetWorkshopActive() * 2;
+                            List<SalesData> salesDataList6 = GetResultList(5, stackA, userManager.GetCurrentGroove() + (day5.productSize - 1) * userManager.GetWorkshopActive(), false);
                             if (userManager.GetLimitCount() > 0 && salesDataList6.Count > userManager.GetLimitCount())
                             {
                                 salesDataList6.Sort((a, b) => b.totalValue.CompareTo(a.totalValue));
+                                for (int x = userManager.GetLimitCount(); x < salesDataList6.Count - userManager.GetLimitCount(); ++x)
+                                {
+                                    salesDataList6[x].Clear();
+                                    salesDataList6[x] = null;
+                                }
                                 salesDataList6.RemoveRange(userManager.GetLimitCount(), salesDataList6.Count - userManager.GetLimitCount());
                                 salesDataList6.ForEach((day6) =>
                                 {
                                     int[] stackB = new int[productList.Count];
                                     for (int i = 0; i < day5.productSize; ++i)
-                                        stackB[day5.product[i]] += i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2;
+                                        stackB[day5.product[i]] += i == 0 ? userManager.GetWorkshopActive() : userManager.GetWorkshopActive() * 2;
                                     for (int i = 0; i < day6.productSize; ++i)
-                                        stackB[day6.product[i]] += i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2;
-                                    EachResultList(6, stackB, userManager.GetCurrentGroove() + (day5.productSize + day6.productSize - 2) * GetActiveWorkshop(), false, (day7) =>
+                                        stackB[day6.product[i]] += i == 0 ? userManager.GetWorkshopActive() : userManager.GetWorkshopActive() * 2;
+                                    EachResultList(6, stackB, userManager.GetCurrentGroove() + (day5.productSize + day6.productSize - 2) * userManager.GetWorkshopActive(), false, (day7) =>
                                     {
                                         if (highestResult.totalValue < day5.totalValue + day6.totalValue + day7.totalValue)
                                         {
@@ -735,19 +765,23 @@ public class Workshop : MonoBehaviour
                                             highestResult.totalValue = day5.totalValue + day6.totalValue + day7.totalValue;
                                         }
                                     });
+                                    day6.Clear();
+                                    day6 = null;
                                     stackB = null;
                                 });
+                                salesDataList6.Clear();
                             }
                             else
                             {
-                                EachResultList(5, stackA, userManager.GetCurrentGroove() + (day5.productSize - 1) * GetActiveWorkshop(), false, (day6) =>
+                                salesDataList6.Clear();
+                                EachResultList(5, stackA, userManager.GetCurrentGroove() + (day5.productSize - 1) * userManager.GetWorkshopActive(), false, (day6) =>
                                 {
                                     int[] stackB = new int[productList.Count];
                                     for (int i = 0; i < day5.productSize; ++i)
-                                        stackB[day5.product[i]] += i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2;
+                                        stackB[day5.product[i]] += i == 0 ? userManager.GetWorkshopActive() : userManager.GetWorkshopActive() * 2;
                                     for (int i = 0; i < day6.productSize; ++i)
-                                        stackB[day6.product[i]] += i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2;
-                                    EachResultList(6, stackB, userManager.GetCurrentGroove() + (day5.productSize + day6.productSize - 2) * GetActiveWorkshop(), false, (day7) =>
+                                        stackB[day6.product[i]] += i == 0 ? userManager.GetWorkshopActive() : userManager.GetWorkshopActive() * 2;
+                                    EachResultList(6, stackB, userManager.GetCurrentGroove() + (day5.productSize + day6.productSize - 2) * userManager.GetWorkshopActive(), false, (day7) =>
                                     {
                                         if (highestResult.totalValue < day5.totalValue + day6.totalValue + day7.totalValue)
                                         {
@@ -784,8 +818,8 @@ public class Workshop : MonoBehaviour
                         {
                             int[] stack = new int[productList.Count];
                             for (int i = 0; i < day5.productSize; ++i)
-                                stack[day5.product[i]] += (i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2);
-                            EachResultList(5, stack, userManager.GetCurrentGroove() + (day5.productSize - 1) * GetActiveWorkshop(), false, (day6) =>
+                                stack[day5.product[i]] += (i == 0 ? userManager.GetWorkshopActive() : userManager.GetWorkshopActive() * 2);
+                            EachResultList(5, stack, userManager.GetCurrentGroove() + (day5.productSize - 1) * userManager.GetWorkshopActive(), false, (day6) =>
                             {
                                 if (highestResult.totalValue < day5.totalValue + day6.totalValue)
                                 {
@@ -806,7 +840,7 @@ public class Workshop : MonoBehaviour
                                     highestResult.totalValue = day5.totalValue + day6.totalValue;
                                 }
                             });
-                            EachResultList(6, stack, userManager.GetCurrentGroove() + (day5.productSize - 1) * GetActiveWorkshop(), false, (day7) =>
+                            EachResultList(6, stack, userManager.GetCurrentGroove() + (day5.productSize - 1) * userManager.GetWorkshopActive(), false, (day7) =>
                             {
                                 if (highestResult.totalValue < day5.totalValue + day7.totalValue)
                                 {
@@ -839,8 +873,8 @@ public class Workshop : MonoBehaviour
                         {
                             int[] stack = new int[productList.Count];
                             for (int i = 0; i < day6.productSize; ++i)
-                                stack[day6.product[i]] += (i == 0 ? GetActiveWorkshop() : GetActiveWorkshop() * 2);
-                            EachResultList(6, stack, userManager.GetCurrentGroove() + (day6.productSize - 1) * GetActiveWorkshop(), false, (day7) =>
+                                stack[day6.product[i]] += (i == 0 ? userManager.GetWorkshopActive() : userManager.GetWorkshopActive() * 2);
+                            EachResultList(6, stack, userManager.GetCurrentGroove() + (day6.productSize - 1) * userManager.GetWorkshopActive(), false, (day7) =>
                             {
                                 if (highestResult.totalValue < day6.totalValue + day7.totalValue)
                                 {
@@ -874,7 +908,7 @@ public class Workshop : MonoBehaviour
                 {
                     if (highestResult.salesData[j].productSize > 0)
                     {
-                        productValueString += $"{highestResult.salesData[j].totalValue * GetActiveWorkshop()} | {highestResult.salesData[j].totalValue} = ";
+                        productValueString += $"{highestResult.salesData[j].totalValue * userManager.GetWorkshopActive()} | {highestResult.salesData[j].totalValue} = ";
                         for (int i = 0; i < highestResult.salesData[j].productSize; ++i)
                         {
                             if (i > 0)
@@ -890,7 +924,7 @@ public class Workshop : MonoBehaviour
                     productValueString += "\n";
                 }
                 productListString += " ";
-                productValueString += $"{highestResult.totalValue * GetActiveWorkshop()} | {(highestResult.totalValue + totalValue) * GetActiveWorkshop()}";
+                productValueString += $"{highestResult.totalValue * userManager.GetWorkshopActive()} | {(highestResult.totalValue + totalValue) * userManager.GetWorkshopActive()}";
                 data.textSalesProductList.text = productListString;
                 data.textSalesValue.text = productValueString;
                 salesList.Add(salesListObject);
@@ -904,7 +938,7 @@ public class Workshop : MonoBehaviour
             {
                 for (int i = 0; i < userManager.GetSalesData(cycle).productSize; ++i)
                 {
-                    int value = (i == 0 ? -1 : -2) * GetActiveWorkshop();
+                    int value = (i == 0 ? -1 : -2) * userManager.GetWorkshopActive();
                     for (int j = cycle + 1; j < 7; ++j)
                         productList[userManager.GetSalesData(cycle).product[i]].AddSupply(j, value);
                 }
@@ -952,7 +986,7 @@ public class Workshop : MonoBehaviour
                 {
                     for (int i = 0; i < userManager.GetSalesData(k).productSize; ++i)
                     {
-                        int value = (i == 0 ? -1 : -2) * GetActiveWorkshop();
+                        int value = (i == 0 ? -1 : -2) * userManager.GetWorkshopActive();
                         for (int j = k + 1; j < 7; ++j)
                             productList[userManager.GetSalesData(k).product[i]].AddSupply(j, value);
                     }
@@ -975,7 +1009,7 @@ public class Workshop : MonoBehaviour
             {
                 day2.value[i] = GetProductValue(day2.product[i], i, 1, 0, 0);
                 day2.totalValue += day2.value[i];
-                int value = (i == 0 ? 1 : 2) * GetActiveWorkshop();
+                int value = (i == 0 ? 1 : 2) * userManager.GetWorkshopActive();
                 for (int j = 2; j < 7; ++j)
                     productList[day2.product[i]].AddSupply(j, value);
             }
@@ -992,7 +1026,7 @@ public class Workshop : MonoBehaviour
             {
                 day4.value[i] = GetProductValue(day4.product[i], i, 3, 15, 0);
                 day4.totalValue += day4.value[i];
-                int value = (i == 0 ? 1 : 2) * GetActiveWorkshop();
+                int value = (i == 0 ? 1 : 2) * userManager.GetWorkshopActive();
                 for (int j = 4; j < 7; ++j)
                     productList[day4.product[i]].AddSupply(j, value);
             }
@@ -1000,23 +1034,6 @@ public class Workshop : MonoBehaviour
             CalculateAllData(true);
         });
         ApplyLanguage();
-    }
-
-    public int GetActiveWorkshop()
-    {
-        UserManager userManager = UserManager.instance;
-        return 1 + (userManager.GetWorkshopTier(1) > 0 ? 1 : 0) + (userManager.GetWorkshopTier(2) > 0 ? 1 : 0);
-    }
-
-    int GetHighestWorkshopTier()
-    {
-        UserManager userManager = UserManager.instance;
-        int value = userManager.GetWorkshopTier(0);
-        if (value < userManager.GetWorkshopTier(1))
-            value = userManager.GetWorkshopTier(1);
-        if (value < userManager.GetWorkshopTier(2))
-            value = userManager.GetWorkshopTier(2);
-        return value;
     }
 
     float GetPopularityValue(int pop)
@@ -1030,7 +1047,7 @@ public class Workshop : MonoBehaviour
         default: return 0;
         }
     }
-
+    /*
     float GetSupplyValue(int sup)
     {
         switch (sup)
@@ -1042,9 +1059,9 @@ public class Workshop : MonoBehaviour
         case 5: return 0.6f;
         default: return 0;
         }
-    }
+    }*/
 
-    float GetPopularityAndSupplyValue(int pop, int sup)
+    int GetPopularityAndSupplyValue(int pop, int sup)
     {
         switch (pop)
         {
@@ -1052,11 +1069,11 @@ public class Workshop : MonoBehaviour
             {
                 switch (sup)
                 {
-                case 1: return 2.24f;
-                case 2: return 1.82f;
-                case 3: return 1.4f;
-                case 4: return 1.12f;
-                case 5: return 0.84f;
+                case 1: return 224;
+                case 2: return 182;
+                case 3: return 140;
+                case 4: return 112;
+                case 5: return 84;
                 default: return 0;
                 }
             }
@@ -1064,11 +1081,11 @@ public class Workshop : MonoBehaviour
             {
                 switch (sup)
                 {
-                case 1: return 1.92f;
-                case 2: return 1.56f;
-                case 3: return 1.2f;
-                case 4: return 0.96f;
-                case 5: return 0.72f;
+                case 1: return 192;
+                case 2: return 156;
+                case 3: return 120;
+                case 4: return 96;
+                case 5: return 72;
                 default: return 0;
                 }
             }
@@ -1076,11 +1093,11 @@ public class Workshop : MonoBehaviour
             {
                 switch (sup)
                 {
-                case 1: return 1.6f;
-                case 2: return 1.3f;
-                case 3: return 1;
-                case 4: return 0.8f;
-                case 5: return 0.6f;
+                case 1: return 160;
+                case 2: return 130;
+                case 3: return 100;
+                case 4: return 80;
+                case 5: return 60;
                 default: return 0;
                 }
             }
@@ -1088,11 +1105,11 @@ public class Workshop : MonoBehaviour
             {
                 switch (sup)
                 {
-                case 1: return 1.28f;
-                case 2: return 1.04f;
-                case 3: return 0.8f;
-                case 4: return 0.64f;
-                case 5: return 0.48f;
+                case 1: return 128;
+                case 2: return 104;
+                case 3: return 80;
+                case 4: return 64;
+                case 5: return 48;
                 default: return 0;
                 }
             }
@@ -1111,17 +1128,28 @@ public class Workshop : MonoBehaviour
         }
     }
 
+    int GetWorkshopTierValueToInt(int tier)
+    {
+        switch (tier)
+        {
+        case 1: return 10;
+        case 2: return 11;
+        case 3: return 12;
+        default: return 0;
+        }
+    }
+
     int GetProductValue(int _index, int _step, int _cycle, int _groove, int _stack)
     {
         UserManager userManager = UserManager.instance;
-        float nowGroove = (_groove + GetActiveWorkshop() * _step);
+        int nowGroove = (_groove + userManager.GetWorkshopActive() * _step);
         if (nowGroove > userManager.GetMaxGroove())
             nowGroove = userManager.GetMaxGroove();
-        return (_step > 0 ? 2 : 1) * 
-            Mathf.FloorToInt(GetPopularityAndSupplyValue(productList[_index].GetPopularity(_cycle), productList[_index].GetSupply(_cycle, _stack)) * 
-            Mathf.FloorToInt(productList[_index].GetValue() *
-            GetWorkshopTierValue(GetHighestWorkshopTier()) * 
-            (1 + nowGroove / 100)));
+        return (_step > 0 ? 2 : 1) *
+            (GetPopularityAndSupplyValue(productList[_index].GetPopularity(_cycle), productList[_index].GetSupply(_cycle, _stack)) *
+            (productList[_index].GetValue() *
+            GetWorkshopTierValueToInt(userManager.GetWorkshopRank()) *
+            (100 + nowGroove) / 1000) / 100) - (userManager.GetNetProfit() == true ? productList[_index].GetSalesValue() : 0);
     }
 
     public void SetPacketData(byte[] data)
@@ -1181,9 +1209,9 @@ public class Workshop : MonoBehaviour
         textRank.text = resourceManager.GetText(1);
         textGrooveNow.text = resourceManager.GetText(2);
         textGrooveMax.text = resourceManager.GetText(3);
-        textTier1.text = resourceManager.GetText(4);
-        textTier2.text = resourceManager.GetText(5);
-        textTier3.text = resourceManager.GetText(6);
+        textWorkshopRank.text = resourceManager.GetText(4);
+        textWorkshopActive.text = resourceManager.GetText(6);
+        textNetProfit.text = resourceManager.GetText(5);
         textGroovePriority.text = resourceManager.GetText(19);
         switch (cycle)
         {
@@ -1195,7 +1223,7 @@ public class Workshop : MonoBehaviour
         case 5:
         case 6:
             {
-                dropCycle.captionText.text = resourceManager.GetText(35).Replace("{0}", (cycle + 1).ToString()) + (userManager.GetSalesData(cycle).totalValue > 0 ? $" [{userManager.GetSalesData(cycle).totalValue * GetActiveWorkshop()}]" : "");
+                dropCycle.captionText.text = resourceManager.GetText(35).Replace("{0}", (cycle + 1).ToString()) + (userManager.GetSalesData(cycle).totalValue > 0 ? $" [{userManager.GetSalesData(cycle).totalValue * userManager.GetWorkshopActive()}]" : "");
                 break;
             }
         case 7:
@@ -1228,7 +1256,7 @@ public class Workshop : MonoBehaviour
             case 5:
             case 6:
                 {
-                    form.text = resourceManager.GetText(35).Replace("{0}", (num + 1).ToString()) + (userManager.GetSalesData(num).totalValue > 0 ? $" [{userManager.GetSalesData(num).totalValue * GetActiveWorkshop()}]" : "");
+                    form.text = resourceManager.GetText(35).Replace("{0}", (num + 1).ToString()) + (userManager.GetSalesData(num).totalValue > 0 ? $" [{userManager.GetSalesData(num).totalValue * userManager.GetWorkshopActive()}]" : "");
                     break;
                 }
             case 7:
@@ -1257,7 +1285,7 @@ public class Workshop : MonoBehaviour
         textSupply.text = resourceManager.GetText(12);
         textCategory.text = resourceManager.GetText(13);
         textProductList.text = resourceManager.GetText(7);
-        textTotalValue.text = $"{resourceManager.GetText(50)} : {totalValue * GetActiveWorkshop()}";
+        textTotalValue.text = $"{resourceManager.GetText(50)} : {totalValue * userManager.GetWorkshopActive()}";
         textExpectedValue.text = resourceManager.GetText(14);
         textCalculate.text = resourceManager.GetText(15);
         textRangeCycle.text = resourceManager.GetText(56);
@@ -1286,7 +1314,7 @@ public class Workshop : MonoBehaviour
         UserManager userManager = UserManager.instance;
         if (userManager.GetCurrentGroove() < userManager.GetMaxGroove() && userManager.GetGroovePriority())
         {
-            if (userManager.GetCurrentGroove() + (GetActiveWorkshop() * 6) <= userManager.GetMaxGroove() + (GetActiveWorkshop() - 1))
+            if (userManager.GetCurrentGroove() + (userManager.GetWorkshopActive() * 6) <= userManager.GetMaxGroove() + (userManager.GetWorkshopActive() - 1))
             {
                 for (int a = 0; a < productList.Count; ++a)
                 {
@@ -1329,7 +1357,7 @@ public class Workshop : MonoBehaviour
                                                                 {
                                                                     salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                     salesdata.totalValue += salesdata.value[i];
-                                                                    stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                    stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                     if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                         isPeak = true;
                                                                     if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -1356,25 +1384,25 @@ public class Workshop : MonoBehaviour
                 {
                     if (productList[a].IsActive() && productList[a].GetTime() == 4)
                     {
-                        if (userManager.GetCurrentGroove() + GetActiveWorkshop() < userManager.GetMaxGroove())
+                        if (userManager.GetCurrentGroove() + userManager.GetWorkshopActive() < userManager.GetMaxGroove())
                         {
                             for (int b = 0; b < productList.Count; ++b)
                             {
                                 if (a != b && productList[b].IsActive() && productList[b].GetTime() == 4 && ((productList[a].GetCategory() & productList[b].GetCategory()) > 0))
                                 {
-                                    if (userManager.GetCurrentGroove() + GetActiveWorkshop() * 2 < userManager.GetMaxGroove())
+                                    if (userManager.GetCurrentGroove() + userManager.GetWorkshopActive() * 2 < userManager.GetMaxGroove())
                                     {
                                         for (int c = 0; c < productList.Count; ++c)
                                         {
                                             if (b != c && productList[c].IsActive() && productList[c].GetTime() == 4 && ((productList[b].GetCategory() & productList[c].GetCategory()) > 0))
                                             {
-                                                if (userManager.GetCurrentGroove() + GetActiveWorkshop() * 3 < userManager.GetMaxGroove())
+                                                if (userManager.GetCurrentGroove() + userManager.GetWorkshopActive() * 3 < userManager.GetMaxGroove())
                                                 {
                                                     for (int d = 0; d < productList.Count; ++d)
                                                     {
                                                         if (c != d && productList[d].IsActive() && productList[d].GetTime() == 4 && ((productList[c].GetCategory() & productList[d].GetCategory()) > 0))
                                                         {
-                                                            if (userManager.GetCurrentGroove() + GetActiveWorkshop() * 4 < userManager.GetMaxGroove())
+                                                            if (userManager.GetCurrentGroove() + userManager.GetWorkshopActive() * 4 < userManager.GetMaxGroove())
                                                             {
                                                                 for (int e = 0; e < productList.Count; ++e)
                                                                 {
@@ -1401,7 +1429,7 @@ public class Workshop : MonoBehaviour
                                                                                 {
                                                                                     salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                     salesdata.totalValue += salesdata.value[i];
-                                                                                    stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                    stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                     if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                         isPeak = true;
                                                                                     if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -1449,7 +1477,7 @@ public class Workshop : MonoBehaviour
                                                                                             {
                                                                                                 salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                                 salesdata.totalValue += salesdata.value[i];
-                                                                                                stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                                stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                                 if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                                     isPeak = true;
                                                                                                 if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -1479,7 +1507,7 @@ public class Workshop : MonoBehaviour
                                                                                 {
                                                                                     salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                     salesdata.totalValue += salesdata.value[i];
-                                                                                    stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                    stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                     if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                         isPeak = true;
                                                                                     if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -1539,7 +1567,7 @@ public class Workshop : MonoBehaviour
                                                                                                 {
                                                                                                     salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                                     salesdata.totalValue += salesdata.value[i];
-                                                                                                    stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                                    stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                                     if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                                         isPeak = true;
                                                                                                     if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -1569,7 +1597,7 @@ public class Workshop : MonoBehaviour
                                                                                     {
                                                                                         salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                         salesdata.totalValue += salesdata.value[i];
-                                                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                        stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                             isPeak = true;
                                                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -1599,7 +1627,7 @@ public class Workshop : MonoBehaviour
                                                                     {
                                                                         salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                         salesdata.totalValue += salesdata.value[i];
-                                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                        stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                             isPeak = true;
                                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -1668,7 +1696,7 @@ public class Workshop : MonoBehaviour
                                                                                                     {
                                                                                                         salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                                         salesdata.totalValue += salesdata.value[i];
-                                                                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                                        stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                                             isPeak = true;
                                                                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -1698,7 +1726,7 @@ public class Workshop : MonoBehaviour
                                                                                         {
                                                                                             salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                             salesdata.totalValue += salesdata.value[i];
-                                                                                            stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                            stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                             if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                                 isPeak = true;
                                                                                             if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -1728,7 +1756,7 @@ public class Workshop : MonoBehaviour
                                                                         {
                                                                             salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                             salesdata.totalValue += salesdata.value[i];
-                                                                            stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                            stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                             if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                 isPeak = true;
                                                                             if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -1757,7 +1785,7 @@ public class Workshop : MonoBehaviour
                                                         {
                                                             salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                             salesdata.totalValue += salesdata.value[i];
-                                                            stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                            stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                             if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                 isPeak = true;
                                                             if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -1830,7 +1858,7 @@ public class Workshop : MonoBehaviour
                                                                                                 {
                                                                                                     salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                                     salesdata.totalValue += salesdata.value[i];
-                                                                                                    stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                                    stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                                     if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                                         isPeak = true;
                                                                                                     if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -1860,7 +1888,7 @@ public class Workshop : MonoBehaviour
                                                                                     {
                                                                                         salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                         salesdata.totalValue += salesdata.value[i];
-                                                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                        stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                             isPeak = true;
                                                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -1890,7 +1918,7 @@ public class Workshop : MonoBehaviour
                                                                     {
                                                                         salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                         salesdata.totalValue += salesdata.value[i];
-                                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                        stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                             isPeak = true;
                                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -1919,7 +1947,7 @@ public class Workshop : MonoBehaviour
                                                     {
                                                         salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                         salesdata.totalValue += salesdata.value[i];
-                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                        stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                             isPeak = true;
                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -1999,7 +2027,7 @@ public class Workshop : MonoBehaviour
                                                                                         {
                                                                                             salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                             salesdata.totalValue += salesdata.value[i];
-                                                                                            stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                            stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                             if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                                 isPeak = true;
                                                                                             if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2029,7 +2057,7 @@ public class Workshop : MonoBehaviour
                                                                             {
                                                                                 salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                 salesdata.totalValue += salesdata.value[i];
-                                                                                stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                 if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                     isPeak = true;
                                                                                 if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2059,7 +2087,7 @@ public class Workshop : MonoBehaviour
                                                             {
                                                                 salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                 salesdata.totalValue += salesdata.value[i];
-                                                                stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                 if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                     isPeak = true;
                                                                 if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2088,7 +2116,7 @@ public class Workshop : MonoBehaviour
                                             {
                                                 salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                 salesdata.totalValue += salesdata.value[i];
-                                                stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                 if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                     isPeak = true;
                                                 if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2120,7 +2148,7 @@ public class Workshop : MonoBehaviour
         UserManager userManager = UserManager.instance;
         if (userManager.GetCurrentGroove() < userManager.GetMaxGroove() && userManager.GetGroovePriority())
         {
-            if (userManager.GetCurrentGroove() + (GetActiveWorkshop() * 6) <= userManager.GetMaxGroove() + (GetActiveWorkshop() - 1))
+            if (userManager.GetCurrentGroove() + (userManager.GetWorkshopActive() * 6) <= userManager.GetMaxGroove() + (userManager.GetWorkshopActive() - 1))
             {
                 for (int a = 0; a < productList.Count; ++a)
                 {
@@ -2162,7 +2190,7 @@ public class Workshop : MonoBehaviour
                                                                 {
                                                                     salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                     salesdata.totalValue += salesdata.value[i];
-                                                                    stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                    stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                     if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                         isPeak = true;
                                                                     if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2189,25 +2217,25 @@ public class Workshop : MonoBehaviour
                 {
                     if (productList[a].IsActive() && productList[a].GetTime() == 4)
                     {
-                        if (userManager.GetCurrentGroove() + GetActiveWorkshop() < userManager.GetMaxGroove())
+                        if (userManager.GetCurrentGroove() + userManager.GetWorkshopActive() < userManager.GetMaxGroove())
                         {
                             for (int b = 0; b < productList.Count; ++b)
                             {
                                 if (a != b && productList[b].IsActive() && productList[b].GetTime() == 4 && ((productList[a].GetCategory() & productList[b].GetCategory()) > 0))
                                 {
-                                    if (userManager.GetCurrentGroove() + GetActiveWorkshop() * 2 < userManager.GetMaxGroove())
+                                    if (userManager.GetCurrentGroove() + userManager.GetWorkshopActive() * 2 < userManager.GetMaxGroove())
                                     {
                                         for (int c = 0; c < productList.Count; ++c)
                                         {
                                             if (b != c && productList[c].IsActive() && productList[c].GetTime() == 4 && ((productList[b].GetCategory() & productList[c].GetCategory()) > 0))
                                             {
-                                                if (userManager.GetCurrentGroove() + GetActiveWorkshop() * 3 < userManager.GetMaxGroove())
+                                                if (userManager.GetCurrentGroove() + userManager.GetWorkshopActive() * 3 < userManager.GetMaxGroove())
                                                 {
                                                     for (int d = 0; d < productList.Count; ++d)
                                                     {
                                                         if (c != d && productList[d].IsActive() && productList[d].GetTime() == 4 && ((productList[c].GetCategory() & productList[d].GetCategory()) > 0))
                                                         {
-                                                            if (userManager.GetCurrentGroove() + GetActiveWorkshop() * 4 < userManager.GetMaxGroove())
+                                                            if (userManager.GetCurrentGroove() + userManager.GetWorkshopActive() * 4 < userManager.GetMaxGroove())
                                                             {
                                                                 for (int e = 0; e < productList.Count; ++e)
                                                                 {
@@ -2233,7 +2261,7 @@ public class Workshop : MonoBehaviour
                                                                                 {
                                                                                     salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                     salesdata.totalValue += salesdata.value[i];
-                                                                                    stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                    stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                     if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                         isPeak = true;
                                                                                     if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2280,7 +2308,7 @@ public class Workshop : MonoBehaviour
                                                                                             {
                                                                                                 salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                                 salesdata.totalValue += salesdata.value[i];
-                                                                                                stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                                stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                                 if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                                     isPeak = true;
                                                                                                 if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2309,7 +2337,7 @@ public class Workshop : MonoBehaviour
                                                                                 {
                                                                                     salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                     salesdata.totalValue += salesdata.value[i];
-                                                                                    stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                    stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                     if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                         isPeak = true;
                                                                                     if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2368,7 +2396,7 @@ public class Workshop : MonoBehaviour
                                                                                                 {
                                                                                                     salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                                     salesdata.totalValue += salesdata.value[i];
-                                                                                                    stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                                    stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                                     if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                                         isPeak = true;
                                                                                                     if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2397,7 +2425,7 @@ public class Workshop : MonoBehaviour
                                                                                     {
                                                                                         salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                         salesdata.totalValue += salesdata.value[i];
-                                                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                        stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                             isPeak = true;
                                                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2426,7 +2454,7 @@ public class Workshop : MonoBehaviour
                                                                     {
                                                                         salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                         salesdata.totalValue += salesdata.value[i];
-                                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                        stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                             isPeak = true;
                                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2494,7 +2522,7 @@ public class Workshop : MonoBehaviour
                                                                                                     {
                                                                                                         salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                                         salesdata.totalValue += salesdata.value[i];
-                                                                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                                        stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                                             isPeak = true;
                                                                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2523,7 +2551,7 @@ public class Workshop : MonoBehaviour
                                                                                         {
                                                                                             salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                             salesdata.totalValue += salesdata.value[i];
-                                                                                            stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                            stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                             if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                                 isPeak = true;
                                                                                             if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2552,7 +2580,7 @@ public class Workshop : MonoBehaviour
                                                                         {
                                                                             salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                             salesdata.totalValue += salesdata.value[i];
-                                                                            stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                            stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                             if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                 isPeak = true;
                                                                             if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2580,7 +2608,7 @@ public class Workshop : MonoBehaviour
                                                         {
                                                             salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                             salesdata.totalValue += salesdata.value[i];
-                                                            stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                            stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                             if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                 isPeak = true;
                                                             if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2652,7 +2680,7 @@ public class Workshop : MonoBehaviour
                                                                                                 {
                                                                                                     salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                                     salesdata.totalValue += salesdata.value[i];
-                                                                                                    stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                                    stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                                     if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                                         isPeak = true;
                                                                                                     if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2681,7 +2709,7 @@ public class Workshop : MonoBehaviour
                                                                                     {
                                                                                         salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                         salesdata.totalValue += salesdata.value[i];
-                                                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                        stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                             isPeak = true;
                                                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2710,7 +2738,7 @@ public class Workshop : MonoBehaviour
                                                                     {
                                                                         salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                         salesdata.totalValue += salesdata.value[i];
-                                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                        stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                             isPeak = true;
                                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2738,7 +2766,7 @@ public class Workshop : MonoBehaviour
                                                     {
                                                         salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                         salesdata.totalValue += salesdata.value[i];
-                                                        stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                        stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                             isPeak = true;
                                                         if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2817,7 +2845,7 @@ public class Workshop : MonoBehaviour
                                                                                         {
                                                                                             salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                             salesdata.totalValue += salesdata.value[i];
-                                                                                            stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                            stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                             if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                                 isPeak = true;
                                                                                             if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2846,7 +2874,7 @@ public class Workshop : MonoBehaviour
                                                                             {
                                                                                 salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                                 salesdata.totalValue += salesdata.value[i];
-                                                                                stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                                stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                                 if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                                     isPeak = true;
                                                                                 if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2875,7 +2903,7 @@ public class Workshop : MonoBehaviour
                                                             {
                                                                 salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                                 salesdata.totalValue += salesdata.value[i];
-                                                                stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                                stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                                 if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                                     isPeak = true;
                                                                 if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2903,7 +2931,7 @@ public class Workshop : MonoBehaviour
                                             {
                                                 salesdata.value[i] = GetProductValue(salesdata.product[i], i, _cycle, _groove, stack[salesdata.product[i]]);
                                                 salesdata.totalValue += salesdata.value[i];
-                                                stack[salesdata.product[i]] += GetActiveWorkshop() * (i == 0 ? 1 : 2);
+                                                stack[salesdata.product[i]] += userManager.GetWorkshopActive() * (i == 0 ? 1 : 2);
                                                 if (productList[salesdata.product[i]].GetSupplyValue(_cycle) < -8)
                                                     isPeak = true;
                                                 if (productList[salesdata.product[i]].GetSupplyValue(_cycle) >= 8)
@@ -2930,7 +2958,7 @@ public class Workshop : MonoBehaviour
         UserManager userManager = UserManager.instance;
         if (userManager.GetCurrentGroove() < userManager.GetMaxGroove() && _groovePriority)
         {
-            if (userManager.GetCurrentGroove() + (GetActiveWorkshop() * 6) <= userManager.GetMaxGroove() + (GetActiveWorkshop() - 1))
+            if (userManager.GetCurrentGroove() + (userManager.GetWorkshopActive() * 6) <= userManager.GetMaxGroove() + (userManager.GetWorkshopActive() - 1))
             {
                 for (int a = 0; a < productList.Count; ++a)
                 {
@@ -2984,25 +3012,25 @@ public class Workshop : MonoBehaviour
                 {
                     if (productList[a].IsActive() && productList[a].GetTime() == 4)
                     {
-                        if (userManager.GetCurrentGroove() + GetActiveWorkshop() < userManager.GetMaxGroove())
+                        if (userManager.GetCurrentGroove() + userManager.GetWorkshopActive() < userManager.GetMaxGroove())
                         {
                             for (int b = 0; b < productList.Count; ++b)
                             {
                                 if (a != b && productList[b].IsActive() && productList[b].GetTime() == 4 && ((productList[a].GetCategory() & productList[b].GetCategory()) > 0))
                                 {
-                                    if (userManager.GetCurrentGroove() + GetActiveWorkshop() * 2 < userManager.GetMaxGroove())
+                                    if (userManager.GetCurrentGroove() + userManager.GetWorkshopActive() * 2 < userManager.GetMaxGroove())
                                     {
                                         for (int c = 0; c < productList.Count; ++c)
                                         {
                                             if (b != c && productList[c].IsActive() && productList[c].GetTime() == 4 && ((productList[b].GetCategory() & productList[c].GetCategory()) > 0))
                                             {
-                                                if (userManager.GetCurrentGroove() + GetActiveWorkshop() * 3 < userManager.GetMaxGroove())
+                                                if (userManager.GetCurrentGroove() + userManager.GetWorkshopActive() * 3 < userManager.GetMaxGroove())
                                                 {
                                                     for (int d = 0; d < productList.Count; ++d)
                                                     {
                                                         if (c != d && productList[d].IsActive() && productList[d].GetTime() == 4 && ((productList[c].GetCategory() & productList[d].GetCategory()) > 0))
                                                         {
-                                                            if (userManager.GetCurrentGroove() + GetActiveWorkshop() * 4 < userManager.GetMaxGroove())
+                                                            if (userManager.GetCurrentGroove() + userManager.GetWorkshopActive() * 4 < userManager.GetMaxGroove())
                                                             {
                                                                 for (int e = 0; e < productList.Count; ++e)
                                                                 {
@@ -3496,8 +3524,8 @@ public class Workshop : MonoBehaviour
 
         gpuCalculate.SetInt("grooveNow", _groove);
         gpuCalculate.SetInt("grooveMax", userManager.GetMaxGroove());
-        gpuCalculate.SetInt("workshopActive", GetActiveWorkshop());
-        gpuCalculate.SetFloat("workshopRank", GetWorkshopTierValue(GetHighestWorkshopTier()));
+        gpuCalculate.SetInt("workshopActive", userManager.GetWorkshopActive());
+        gpuCalculate.SetFloat("workshopRank", GetWorkshopTierValue(userManager.GetWorkshopRank()));
         gpuCalculateItemA = new ComputeBuffer(1024, sizeof(int));
         gpuCalculateItemB = new ComputeBuffer(1024, sizeof(int));
         gpuCalculateItemC = new ComputeBuffer(1024, sizeof(int));
@@ -3649,6 +3677,7 @@ public class Workshop : MonoBehaviour
 
     public SalesData GetHighestResultGPU(int _cycle, int[] _stack, int _groove, List<SalesData> dataList)
     {
+        UserManager userManager = UserManager.instance;
         int gpuKernel = gpuCalculate.FindKernel("CSMain");
         int[] value = new int[productList.Count];
         for (int i = 0; i < value.Length; ++i)
@@ -3670,9 +3699,9 @@ public class Workshop : MonoBehaviour
         gpuCalculate.SetBuffer(gpuKernel, "popularity", gpuCalculatePopularity);
 
         gpuCalculate.SetInt("grooveNow", _groove);
-        gpuCalculate.SetInt("grooveMax", UserManager.instance.GetMaxGroove());
-        gpuCalculate.SetInt("workshopActive", GetActiveWorkshop());
-        gpuCalculate.SetFloat("workshopRank", GetWorkshopTierValue(GetHighestWorkshopTier()));
+        gpuCalculate.SetInt("grooveMax", userManager.GetMaxGroove());
+        gpuCalculate.SetInt("workshopActive", userManager.GetWorkshopActive());
+        gpuCalculate.SetFloat("workshopRank", GetWorkshopTierValue(userManager.GetWorkshopRank()));
         gpuCalculateItemA = new ComputeBuffer(1024, sizeof(int));
         gpuCalculateItemB = new ComputeBuffer(1024, sizeof(int));
         gpuCalculateItemC = new ComputeBuffer(1024, sizeof(int));
@@ -3871,7 +3900,7 @@ public class Workshop : MonoBehaviour
                 {
                     for (int j = 0; j < userManager.GetSalesData(i).productSize; ++j)
                     {
-                        int value = (j == 0 ? 1 : 2) * GetActiveWorkshop();
+                        int value = (j == 0 ? 1 : 2) * userManager.GetWorkshopActive();
                         for (int k = i + 1; k < 7; ++k)
                             productList[userManager.GetSalesData(i).product[j]].AddSupply(k, value);
                     }
@@ -3893,7 +3922,7 @@ public class Workshop : MonoBehaviour
                 {
                     for (int i = 0; i < userManager.GetSalesData(cycle).productSize; ++i)
                     {
-                        int value = (i == 0 ? -1 : -2) * GetActiveWorkshop();
+                        int value = (i == 0 ? -1 : -2) * userManager.GetWorkshopActive();
                         for (int j = cycle + 1; j < 7; ++j)
                             productList[userManager.GetSalesData(cycle).product[i]].AddSupply(j, value);
                     }
@@ -3907,7 +3936,7 @@ public class Workshop : MonoBehaviour
             {
                 for (int i = 0; i < list.GetData()[0].productSize; ++i)
                 {
-                    int value = (i == 0 ? 1 : 2) * GetActiveWorkshop();
+                    int value = (i == 0 ? 1 : 2) * userManager.GetWorkshopActive();
                     for (int j = cycle + 1; j < 7; ++j)
                         productList[list.GetData()[0].product[i]].AddSupply(j, value);
                 }
@@ -3933,19 +3962,19 @@ public class Workshop : MonoBehaviour
                 {
                     form.value[j] = GetProductValue(userManager.GetSalesData(i).product[j], j, i, nowGroove, stack[userManager.GetSalesData(i).product[j]]);
                     dayValue += form.value[j];
-                    stack[userManager.GetSalesData(i).product[j]] += GetActiveWorkshop() * (j == 0 ? 1 : 2);
+                    stack[userManager.GetSalesData(i).product[j]] += userManager.GetWorkshopActive() * (j == 0 ? 1 : 2);
                 }
                 form.totalValue = dayValue;
                 totalValue += dayValue;
                 userManager.SetSalesData(i, form);
-                nowGroove += (userManager.GetSalesData(i).productSize - 1) * GetActiveWorkshop();
-                dropCycle.options[i].text = resourceManager.GetText(35).Replace("{0}", (i + 1).ToString()) + $" [{userManager.GetSalesData(i).totalValue * GetActiveWorkshop()}]";
+                nowGroove += (userManager.GetSalesData(i).productSize - 1) * userManager.GetWorkshopActive();
+                dropCycle.options[i].text = resourceManager.GetText(35).Replace("{0}", (i + 1).ToString()) + $" [{userManager.GetSalesData(i).totalValue * userManager.GetWorkshopActive()}]";
             }
             else
                 dropCycle.options[i].text = resourceManager.GetText(35).Replace("{0}", (i + 1).ToString());
         }
-        textTotalValue.text = $"{resourceManager.GetText(50)} : {totalValue * GetActiveWorkshop()}";
+        textTotalValue.text = $"{resourceManager.GetText(50)} : {totalValue * userManager.GetWorkshopActive()}";
         if (!_all)
-            dropCycle.captionText.text = resourceManager.GetText(35).Replace("{0}", (cycle + 1).ToString()) + (userManager.GetSalesData(cycle).totalValue > 0 ? $" [{userManager.GetSalesData(cycle).totalValue * GetActiveWorkshop()}]" : "");
+            dropCycle.captionText.text = resourceManager.GetText(35).Replace("{0}", (cycle + 1).ToString()) + (userManager.GetSalesData(cycle).totalValue > 0 ? $" [{userManager.GetSalesData(cycle).totalValue * userManager.GetWorkshopActive()}]" : "");
     }
 }
