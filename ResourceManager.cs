@@ -20,7 +20,7 @@ public class ResourceManager
     List<Dictionary<string, object>> textData;
     List<Dictionary<string, object>> supplyPattern;
     List<Dictionary<string, object>> updateVersionData;
-    List<Dictionary<string, object>> itemData;
+    List<Dictionary<string, object>> materialData;
     List<Dictionary<string, object>> gatherNodeData;
     List<Dictionary<string, object>> urlData;
 
@@ -140,7 +140,7 @@ public class ResourceManager
         sizeData = CSVReader.Read("CSV/Size", true);
         weatherData = CSVReader.Read("CSV/Weather", true);
         textData = CSVReader.Read("CSV/Text", true);
-        itemData = CSVReader.Read("CSV/Item", true);
+        materialData = CSVReader.Read("CSV/Material", true);
         gatherNodeData = CSVReader.Read("CSV/GatherNode", true);
         urlData = CSVReader.Read("CSV/URL", true);
         UpdateVersion();
@@ -164,8 +164,8 @@ public class ResourceManager
         weatherData = null;
         textData.Clear();
         textData = null;
-        itemData.Clear();
-        itemData = null;
+        materialData.Clear();
+        materialData = null;
         gatherNodeData.Clear();
         gatherNodeData = null;
         urlData.Clear();
@@ -202,6 +202,20 @@ public class ResourceManager
     {
         if (index >= 0 && index < productData.Count)
             return (int)productData[index]["Value"];
+        else
+            return -1;
+    }
+
+    public int GetProductSalesValue(int index)
+    {
+        if (index >= 0 && index < productData.Count)
+        {
+            int value = (int)materialData[(int)productData[index]["Material 1"]]["Value"] * (int)productData[index]["Material Required 1"];
+            value += (int)materialData[(int)productData[index]["Material 2"]]["Value"] * (int)productData[index]["Material Required 2"];
+            if (productData[index]["Material 3"].ToString().Length > 0)
+                value += (int)materialData[(int)productData[index]["Material 3"]]["Value"] * (int)productData[index]["Material Required 3"];
+            return value;
+        }
         else
             return -1;
     }
@@ -326,9 +340,11 @@ public class ResourceManager
 
     public byte GetStatusData(int line, int index) => popularityData[line, index + 1];
 
-    public string GetItemName(int index) => itemData[index][UserManager.instance.GetDataLanguage().ToString()].ToString();
+    public string GetMaterialName(int index) => materialData[index][UserManager.instance.GetDataLanguage().ToString()].ToString();
 
-    public int GetItemMax() => itemData.Count;
+    public int GetMaterialCategory(int index) => (int)materialData[index]["Category"];
+
+    public int GetMaterialMax() => materialData.Count;
 
     public void GetGatherNodeItems(int index, out int item1, out int item2)
     {
