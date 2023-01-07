@@ -22,11 +22,10 @@ public class SalesList : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
 
     private void Awake()
     {
-        Workshop workshop = Workshop.instance;
         UserManager userManager = UserManager.instance;
         btnSalesProductList?.onClick.AddListener(() =>
         {
-            workshop.SetNowSalesData(this);
+            Workshop.instance.SetNowSalesData(this);
         });
         EventTrigger.Entry entry = new EventTrigger.Entry();
         entry.eventID = EventTriggerType.PointerEnter;
@@ -53,10 +52,10 @@ public class SalesList : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
                     string text = "";
                     foreach (KeyValuePair<int, int> kv in quantity)
                     {
-                        int value = kv.Value * workshop.GetActiveWorkshop() - userManager.GetInventory(kv.Key);
+                        int value = kv.Value * userManager.GetWorkshopActive() - userManager.GetInventory(kv.Key);
                         if (value < 0)
                             value = 0;
-                        text += $"<sprite={kv.Key}>{resourceManager.GetItemName(kv.Key)} : {value}\n";
+                        text += $"<sprite={kv.Key}>{resourceManager.GetMaterialName(kv.Key)} : {value}\n";
                     }
                     quantity.Clear();
                     quantity = null;
