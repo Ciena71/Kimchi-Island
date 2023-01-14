@@ -211,6 +211,8 @@ public class AnimalData : MonoBehaviour
                                 if (eorzea.GetWeather(dt.AddSeconds(175 * i)) == weather)
                                 {
                                     ht = new DateTime(dt.AddSeconds(175 * (i + 1)).Ticks);
+                                    startTime += 4200;
+                                    dt = TimeZone.CurrentTimeZone.ToLocalTime(new DateTime(Convert.ToInt64(startTime * 10000000)).AddYears(1969)).AddSeconds(time * 175);
                                     break;
                                 }
                             }
