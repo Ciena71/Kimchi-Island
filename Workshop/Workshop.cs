@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -146,7 +146,7 @@ public class Workshop : MonoBehaviour
         {
             if (int.TryParse(data, out int value))
             {
-                if (1 <= value && value <= 10)
+                if (1 <= value && value <= 12)
                     userManager.SetPlayerRank(value);
                 else
                     inputRank.text = userManager.GetPlayerRank().ToString();
@@ -576,7 +576,7 @@ public class Workshop : MonoBehaviour
                     List<SalesData> dataList = GetEnableList(userManager.GetGroovePriority());
                     if (count >= 3)
                     {
-                        EachResultList(4, new int[50], userManager.GetCurrentGroove(), false, (day5) =>
+                        EachResultList(4, new int[productList.Count], userManager.GetCurrentGroove(), false, (day5) =>
                         {
                             int[] stackA = new int[productList.Count];
                             for (int i = 0; i < day5.productSize; ++i)
@@ -620,7 +620,7 @@ public class Workshop : MonoBehaviour
                     }
                     else if (count == 2)
                     {
-                        EachResultList(4, new int[50], userManager.GetCurrentGroove(), false, (day5) =>
+                        EachResultList(4, new int[productList.Count], userManager.GetCurrentGroove(), false, (day5) =>
                         {
                             int[] stack = new int[productList.Count];
                             for (int i = 0; i < day5.productSize; ++i)
@@ -675,7 +675,7 @@ public class Workshop : MonoBehaviour
                             day7 = null;
                             stack = null;
                         });
-                        EachResultList(5, new int[50], userManager.GetCurrentGroove(), false, (day6) =>
+                        EachResultList(5, new int[productList.Count], userManager.GetCurrentGroove(), false, (day6) =>
                         {
                             int[] stack = new int[productList.Count];
                             for (int i = 0; i < day6.productSize; ++i)
@@ -1154,46 +1154,43 @@ public class Workshop : MonoBehaviour
 
     public void SetPacketData(byte[] data)
     {
-        if (data.Length == 96 && data[data.Length - 1] == 50)
+        copySupplyPacket = "";
+        copyPopularityPacket = "";
+        ResourceManager resourceManager = ResourceManager.instance;
+        for (int i = 0; i < productList.Count; ++i)
         {
-            copySupplyPacket = "";
-            copyPopularityPacket = "";
-            ResourceManager resourceManager = ResourceManager.instance;
-            for (int i = 0; i < productList.Count; ++i)
+            int value = 0;
+            if ((data[35 + i] & (1 << 6)) == (1 << 6))
+                value = 4;
+            else if ((data[35 + i] & (1 << 5) + (1 << 4)) == (1 << 5) + (1 << 4))
+                value = 3;
+            else if ((data[35 + i] & (1 << 5)) == (1 << 5))
+                value = 2;
+            else if ((data[35 + i] & (1 << 4)) == (1 << 4))
+                value = 1;
+            int demandShift = 0;
+            if ((data[35 + i] & (1 << 2)) == (1 << 2))
+                demandShift = 5;
+            else if ((data[35 + i] & (1 << 1) + (1 << 0)) == (1 << 1) + (1 << 0))
+                demandShift = 4;
+            else if ((data[35 + i] & (1 << 1)) == (1 << 1))
+                demandShift = 3;
+            else if ((data[35 + i] & (1 << 0)) == (1 << 0))
+                demandShift = 2;
+            else
+                demandShift = 1;
+            copySupplyPacket += $"{value}\t{3 - demandShift}";
+            copyPopularityPacket += $"{resourceManager.GetStatusData(data[32], i)}\t{resourceManager.GetStatusData(data[33], i)}";
+            if (i < productList.Count - 1)
             {
-                int value = 0;
-                if ((data[35 + i] & (1 << 6)) == (1 << 6))
-                    value = 4;
-                else if ((data[35 + i] & (1 << 5) + (1 << 4)) == (1 << 5) + (1 << 4))
-                    value = 3;
-                else if ((data[35 + i] & (1 << 5)) == (1 << 5))
-                    value = 2;
-                else if ((data[35 + i] & (1 << 4)) == (1 << 4))
-                    value = 1;
-                int demandShift = 0;
-                if ((data[35 + i] & (1 << 2)) == (1 << 2))
-                    demandShift = 5;
-                else if ((data[35 + i] & (1 << 1) + (1 << 0)) == (1 << 1) + (1 << 0))
-                    demandShift = 4;
-                else if ((data[35 + i] & (1 << 1)) == (1 << 1))
-                    demandShift = 3;
-                else if ((data[35 + i] & (1 << 0)) == (1 << 0))
-                    demandShift = 2;
-                else
-                    demandShift = 1;
-                copySupplyPacket += $"{value}\t{3 - demandShift}";
-                copyPopularityPacket += $"{resourceManager.GetStatusData(data[32], i)}\t{resourceManager.GetStatusData(data[33], i)}";
-                if (i < productList.Count - 1)
-                {
-                    copySupplyPacket += "\n";
-                    copyPopularityPacket += "\n";
-                }
+                copySupplyPacket += "\n";
+                copyPopularityPacket += "\n";
             }
-#if UNITY_EDITOR
-            Debug.Log(copySupplyPacket + "\n");
-            Debug.Log(copyPopularityPacket + "\n");
-#endif
         }
+#if UNITY_EDITOR
+        Debug.Log(copySupplyPacket + "\n");
+        Debug.Log(copyPopularityPacket + "\n");
+#endif
     }
 
     public void SupplyPacketDataCopy() => GUIUtility.systemCopyBuffer = copySupplyPacket;
@@ -3506,19 +3503,19 @@ public class Workshop : MonoBehaviour
         int[] value = new int[productList.Count];
         for (int i = 0; i < value.Length; ++i)
             value[i] = productList[i].GetValue();
-        gpuCalculateValue = new ComputeBuffer(50, sizeof(uint));
+        gpuCalculateValue = new ComputeBuffer(productList.Count, sizeof(uint));
         gpuCalculateValue.SetData(value);
         gpuCalculate.SetBuffer(gpuKernel, "value", gpuCalculateValue);
         int[] supply = new int[productList.Count];
         for (int i = 0; i < supply.Length; ++i)
             supply[i] = productList[i].GetSupplyValue(_cycle) + _stack[i];
-        gpuCalculateSupply = new ComputeBuffer(50, sizeof(int));
+        gpuCalculateSupply = new ComputeBuffer(productList.Count, sizeof(int));
         gpuCalculateSupply.SetData(supply);
         gpuCalculate.SetBuffer(gpuKernel, "supply", gpuCalculateSupply);
         float[] popularity = new float[productList.Count];
         for (int i = 0; i < popularity.Length; ++i)
             popularity[i] = GetPopularityValue(productList[i].GetPopularity(_cycle));
-        gpuCalculatePopularity = new ComputeBuffer(50, sizeof(float));
+        gpuCalculatePopularity = new ComputeBuffer(productList.Count, sizeof(float));
         gpuCalculatePopularity.SetData(popularity);
         gpuCalculate.SetBuffer(gpuKernel, "popularity", gpuCalculatePopularity);
 
@@ -3682,19 +3679,19 @@ public class Workshop : MonoBehaviour
         int[] value = new int[productList.Count];
         for (int i = 0; i < value.Length; ++i)
             value[i] = productList[i].GetValue();
-        gpuCalculateValue = new ComputeBuffer(50, sizeof(uint));
+        gpuCalculateValue = new ComputeBuffer(productList.Count, sizeof(uint));
         gpuCalculateValue.SetData(value);
         gpuCalculate.SetBuffer(gpuKernel, "value", gpuCalculateValue);
         int[] supply = new int[productList.Count];
         for (int i = 0; i < supply.Length; ++i)
             supply[i] = productList[i].GetSupplyValue(_cycle) + _stack[i];
-        gpuCalculateSupply = new ComputeBuffer(50, sizeof(int));
+        gpuCalculateSupply = new ComputeBuffer(productList.Count, sizeof(int));
         gpuCalculateSupply.SetData(supply);
         gpuCalculate.SetBuffer(gpuKernel, "supply", gpuCalculateSupply);
         float[] popularity = new float[productList.Count];
         for (int i = 0; i < popularity.Length; ++i)
             popularity[i] = GetPopularityValue(productList[i].GetPopularity(_cycle));
-        gpuCalculatePopularity = new ComputeBuffer(50, sizeof(float));
+        gpuCalculatePopularity = new ComputeBuffer(productList.Count, sizeof(float));
         gpuCalculatePopularity.SetData(popularity);
         gpuCalculate.SetBuffer(gpuKernel, "popularity", gpuCalculatePopularity);
 
@@ -3883,8 +3880,10 @@ public class Workshop : MonoBehaviour
                         form.SetPeak(4, 0, pop[0], pop[1]);
                     else if (data[1] == "5")
                         form.SetPeak(5, 0, pop[0], pop[1]);
-                    else
+                    else if (data[1] == "6/7")
                         form.SetPeak(6, 0, pop[0], pop[1]);
+                    else if (data[1] == "3/6/7")
+                        form.SetPeak(3, -1, pop[0], pop[1]);
                 }
             }
             else

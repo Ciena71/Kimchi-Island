@@ -103,10 +103,10 @@ public class AnimalData : MonoBehaviour
             ++num;
         }
         title[num] = resourceManager.GetText(59);
-        des[num] = resourceManager.GetItemName(resourceManager.GetAnimalNormalLeaving(index));
+        des[num] = resourceManager.GetMaterialName(resourceManager.GetAnimalNormalLeaving(index));
         ++num;
         title[num] = resourceManager.GetText(60);
-        des[num] = resourceManager.GetItemName(resourceManager.GetAnimalRareLeaving(index));
+        des[num] = resourceManager.GetMaterialName(resourceManager.GetAnimalRareLeaving(index));
         Tooltip.instance.ShowToolTip(imgIcon.sprite, resourceManager.GetAnimalName(index), title, des);
     }
 
@@ -199,10 +199,30 @@ public class AnimalData : MonoBehaviour
             {
                 if (type < 2)
                 {
-                    double startTime = (Math.Truncate((DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds / 4200) + 1) * 4200;
+                    double startTime = (Math.Truncate((DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds / 4200)) * 4200;
+                    DateTime dt = TimeZone.CurrentTimeZone.ToLocalTime(new DateTime(Convert.ToInt64(startTime * 10000000)).AddYears(1969)).AddSeconds(time * 175);
+                    DateTime ht = new DateTime(1970, 1, 1);
+                    if (eorzea.GetNowTime().Hour < time + 3)
+                    {
+                        if (eorzea.GetNowWeather() == weather && time <= eorzea.GetNowTime().Hour)
+                        {
+                            for (int i = 2; i > 0; --i)
+                            {
+                                if (eorzea.GetWeather(dt.AddSeconds(175 * i)) == weather)
+                                {
+                                    ht = new DateTime(dt.AddSeconds(175 * (i + 1)).Ticks);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        startTime += 4200;
+                        dt = TimeZone.CurrentTimeZone.ToLocalTime(new DateTime(Convert.ToInt64(startTime * 10000000)).AddYears(1969)).AddSeconds(time * 175);
+                    }
                     while (true)
                     {
-                        DateTime dt = TimeZone.CurrentTimeZone.ToLocalTime(new DateTime(Convert.ToInt64(startTime * 10000000)).AddYears(1969)).AddSeconds(time * 175);
                         int start = eorzea.GetWeather(dt) == weather ? 0 : -1;
                         int end = 0;
                         for (int i = 1; i < 3; ++i)
@@ -215,28 +235,16 @@ public class AnimalData : MonoBehaviour
                         if (start >= 0)
                         {
                             if (type == 0)
-                            {
-                                if (eorzea.GetNowWeather() == weather && time <= eorzea.GetNowTime().Hour && eorzea.GetNowTime().Hour < time + 3)
-                                {
-                                    double nowTime = (Math.Truncate((DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds / 1400) + 1) * 1400;
-                                    DateTime nt = TimeZone.CurrentTimeZone.ToLocalTime(new DateTime(Convert.ToInt64(nowTime * 10000000)).AddYears(1969));
-                                    int checker = 0;
-                                    for (int i = 1; i <= time - nt.Hour; ++i)
-                                    {
-                                        if (eorzea.GetWeather(nt.AddSeconds(175 * i)) == weather)
-                                            checker = i;
-                                    }
-                                    animalNextSpawn.SetDefaultTime(dt.AddSeconds(175 * start), nt.AddSeconds(175 * checker), dt.AddSeconds(175 * end));
-                                }
-                                else
-                                    animalNextSpawn.SetDefaultTime(dt.AddSeconds(175 * start), new DateTime(1970, 1, 1), dt.AddSeconds(175 * end));
-                            }
+                                animalNextSpawn.SetDefaultTime(dt.AddSeconds(175 * start), ht, dt.AddSeconds(175 * end));
                             else
                                 animalNextSpawn.SetSpawnTime(dt.AddSeconds(175 * start), dt.AddSeconds(175 * end));
                             break;
                         }
                         else
+                        {
                             startTime += 4200;
+                            dt = TimeZone.CurrentTimeZone.ToLocalTime(new DateTime(Convert.ToInt64(startTime * 10000000)).AddYears(1969)).AddSeconds(time * 175);
+                        }
                     }
                 }
                 else

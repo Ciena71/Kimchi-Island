@@ -58,6 +58,8 @@ public class ScheduleProduct : MonoBehaviour
                     peakDay = -3;
                 else if (pattern[1] == "6/7")
                     peakDay = -4;
+                else if (pattern[1] == "3/6/7")
+                    peakDay = -5;
                 else
                     peakDay = -2;
             }
@@ -127,6 +129,13 @@ public class ScheduleProduct : MonoBehaviour
                         else
                             imgDay[i].color = new Color(217 / 255.0f, 234 / 255.0f, 211 / 255.0f);
                     }
+                    else if (peakDay == -5)
+                    {
+                        if (i == 0 || i == 1 || i == 3 || i == 4)
+                            imgDay[i].color = new Color(220 / 255.0f, 220 / 255.0f, 220 / 255.0f);
+                        else
+                            imgDay[i].color = new Color(201 / 255.0f, 218 / 255.0f, 250 / 255.0f);
+                    }
                 }
             }
         }
@@ -142,7 +151,7 @@ public class ScheduleProduct : MonoBehaviour
         for (int i = 0; i < 7; ++i)
         {
             if (i != 0 || !checker)
-                textDay[i].text = resourceManager.GetSupplyName(supply[i] >= 0 ? supply[i] : (supply[i] == -1 ? 5 : (supply[i] == -2 ? 6 : (supply[i] == -3 ? 7 : 8))));
+                textDay[i].text = resourceManager.GetSupplyName(supply[i] >= 0 ? supply[i] : (supply[i] == -2 ? 6 : (supply[i] == -3 ? 7 : (supply[i] == -4 ? 8 : (supply[i] == -5 ? 9 : 5)))));
         }
     }
 
@@ -166,7 +175,7 @@ public class ScheduleProduct : MonoBehaviour
         else
         {
             ResourceManager resourceManager = ResourceManager.instance;
-            textDay[0].text = resourceManager.GetSupplyName(supply[0] >= 0 ? supply[0] : (supply[0] == -1 ? 5 : (supply[0] == -2 ? 6 : (supply[0] == -3 ? 7 : 8))));
+            textDay[0].text = resourceManager.GetSupplyName(supply[0] >= 0 ? supply[0] : (supply[0] == -2 ? 6 : (supply[0] == -3 ? 7 : (supply[0] == -4 ? 8 : (supply[0] == -5 ? 9 : 5)))));
             imgDay1.rectTransform.sizeDelta = new Vector2(30, 30);
             imgDay1.sprite = Resources.Load<Sprite>("Sprite/Status/Supply");
             if (supply[0] >= 2)

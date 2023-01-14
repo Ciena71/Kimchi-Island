@@ -11,22 +11,22 @@ public class UserData
     public int alarmVolume;
     public int alarm;
 
-    public int rank = 10;
+    public int rank = 12;
     public int grooveCurrent = 0;
     public int grooveMax = 35;
     public int workshopRank = 3;
     public int workshopActive = 3;
     public bool netProfit = false;
     public bool groovePriority = false;
-    public bool[] productBlacklistNew = new bool[50];
+    public bool[] productBlacklistNew = new bool[60];
     public SalesData[] salesData = new SalesData[7];
     public long dataWeek;
     public int cpuThread = Environment.ProcessorCount >= 8 ? Environment.ProcessorCount - 4 : Environment.ProcessorCount - 1;
     public bool gpuCalculate;
-    public int limitEnableCount = 100;
+    public int limitEnableCount = 20;
 
     public int animalAlarmList;
-    public int[] inventory = new int[61];
+    public int[] inventory = new int[70];
 
     public string gamePath = @"C:\Program Files (x86)\SquareEnix\FINAL FANTASY XIV - A Realm Reborn\game\ffxiv_dx11.exe";
 }

@@ -14,6 +14,19 @@ public class UserManager
     {
         instance = this;
         LoadData();
+        bool changed = false;
+        if (userData.productBlacklistNew.Length != 60)
+        {
+            Array.Resize(ref userData.productBlacklistNew, 60);
+            changed = true;
+        }
+        if (userData.inventory.Length != 70)
+        {
+            Array.Resize(ref userData.inventory, 70);
+            changed = true;
+        }
+        if (changed)
+            SaveData();
         SystemCore systemCore = SystemCore.instance;
         systemCore.ApplyLanguage();
         systemCore.AssignTopmostWindow(Application.productName, userData.alwaysOnTop);

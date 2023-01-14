@@ -188,6 +188,14 @@ public class WorkshopSchedule : MonoBehaviour
                 });
                 scheduleProductList.ForEach((form) =>
                 {
+                    if (form.GetSupply(2) == -5)
+                    {
+                        form.transform.SetSiblingIndex(index);
+                        ++index;
+                    }
+                });
+                scheduleProductList.ForEach((form) =>
+                {
                     if (form.GetSupply(2) == -1)
                     {
                         form.transform.SetSiblingIndex(index);
@@ -248,6 +256,14 @@ public class WorkshopSchedule : MonoBehaviour
                 scheduleProductList.ForEach((form) =>
                 {
                     if (form.GetSupply(2) == -1)
+                    {
+                        form.transform.SetSiblingIndex(index);
+                        ++index;
+                    }
+                });
+                scheduleProductList.ForEach((form) =>
+                {
+                    if (form.GetSupply(2) == -5)
                     {
                         form.transform.SetSiblingIndex(index);
                         ++index;
@@ -502,6 +518,14 @@ public class WorkshopSchedule : MonoBehaviour
                 });
                 scheduleProductList.ForEach((form) =>
                 {
+                    if (form.GetSupply(5) == -5)
+                    {
+                        form.transform.SetSiblingIndex(index);
+                        ++index;
+                    }
+                });
+                scheduleProductList.ForEach((form) =>
+                {
                     if (form.GetSupply(5) == -1)
                     {
                         form.transform.SetSiblingIndex(index);
@@ -578,6 +602,14 @@ public class WorkshopSchedule : MonoBehaviour
                 scheduleProductList.ForEach((form) =>
                 {
                     if (form.GetSupply(5) == -1)
+                    {
+                        form.transform.SetSiblingIndex(index);
+                        ++index;
+                    }
+                });
+                scheduleProductList.ForEach((form) =>
+                {
+                    if (form.GetSupply(5) == -5)
                     {
                         form.transform.SetSiblingIndex(index);
                         ++index;
@@ -612,6 +644,14 @@ public class WorkshopSchedule : MonoBehaviour
                 });
                 scheduleProductList.ForEach((form) =>
                 {
+                    if (form.GetSupply(6) == -5)
+                    {
+                        form.transform.SetSiblingIndex(index);
+                        ++index;
+                    }
+                });
+                scheduleProductList.ForEach((form) =>
+                {
                     if (form.GetSupply(6) == -1)
                     {
                         form.transform.SetSiblingIndex(index);
@@ -688,6 +728,14 @@ public class WorkshopSchedule : MonoBehaviour
                 scheduleProductList.ForEach((form) =>
                 {
                     if (form.GetSupply(6) == -1)
+                    {
+                        form.transform.SetSiblingIndex(index);
+                        ++index;
+                    }
+                });
+                scheduleProductList.ForEach((form) =>
+                {
+                    if (form.GetSupply(6) == -5)
                     {
                         form.transform.SetSiblingIndex(index);
                         ++index;

@@ -221,6 +221,8 @@ public class Product : MonoBehaviour
                         supply = new int[] { 0, -4, -8, 2, 2, 2, 2, supply[7], supply[8] };
                     else
                         supply = new int[] { 0, -8, -15, 0, 0, 0, 0, supply[7], supply[8] };
+                    if (_peak == -1)
+                        supply = new int[] { 0, -1, -8, 7, 0, -8, -8, supply[7], supply[8] };
                     break;
                 }
             case 4:
@@ -287,6 +289,7 @@ public class Product : MonoBehaviour
         {
             switch (pattern[1])
             {
+            case -1:
             case 0:
                 {
                     imgProductSupply.color = new Color(201 / 255.0f, 218 / 255.0f, 250 / 255.0f);
@@ -306,10 +309,12 @@ public class Product : MonoBehaviour
         }
         else
         {
-            if (pattern[1] == 0 && pattern[0] == cycle && (pattern[0] == 4 || pattern[0] == 6))
+            if ((pattern[1] == 0 && pattern[0] == cycle && (pattern[0] == 4 || pattern[0] == 6)) || (pattern[1] == -1 && pattern[0] == 3 && (cycle == 2 || cycle == 5 || cycle == 6)))
                 imgProductSupply.color = new Color(201 / 255.0f, 218 / 255.0f, 250 / 255.0f);
-            else
+            else if (pattern[1] != -1)
                 imgProductSupply.color = new Color(217 / 255.0f, 234 / 255.0f, 211 / 255.0f);
+            else
+                imgProductSupply.color = new Color(220 / 255.0f, 220 / 255.0f, 220 / 255.0f);
         }
     }
 

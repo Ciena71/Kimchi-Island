@@ -30,5 +30,5 @@ public class GatherData : MonoBehaviour
             imgBG.color = Color.white;
     }
 
-    public void ApplyLanguage() => textItem.text = ResourceManager.instance.GetItemName(item);
+    public void ApplyLanguage() => textItem.text = ResourceManager.instance.GetMaterialName(item);
 }
