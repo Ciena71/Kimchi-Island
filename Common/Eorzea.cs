@@ -2,7 +2,6 @@ using System;
 using System.Threading;
 using UnityEngine;
 using UnityEngine.UI;
-//using Machina;
 using Machina.FFXIV;
 using Machina.Infrastructure;
 using System.Collections.Generic;
@@ -24,7 +23,6 @@ public class Eorzea : IDisposable
     private static Thread threadPacket;
     private static Queue<byte[]> threadReceivedQueue = new Queue<byte[]>();
     static FFXIVNetworkMonitor monitor;
-    //static TCPNetworkMonitor monitor;
 
     public Eorzea(Text _textHour,Text _textMinute,Image _imgWeather,Text _textWeather)
     {
@@ -61,7 +59,7 @@ public class Eorzea : IDisposable
         if (monitor != null)
         {
             UserManager userManager = UserManager.instance;
-            //monitor.MonitorType = (userManager.GetPacketType() == 2) ? NetworkMonitorType.WinPCap : NetworkMonitorType.RawSocket;
+            monitor.MonitorType = (userManager.GetPacketType() == 2) ? NetworkMonitorType.WinPCap : NetworkMonitorType.RawSocket;
             if (userManager.GetPacketType() > 0)
                 monitor.Start();
         }
@@ -69,24 +67,9 @@ public class Eorzea : IDisposable
 
     private static void ThreadRun()
     {
-        UserManager userManager = UserManager.instance;/*
-        monitor = new TCPNetworkMonitor();
-        monitor.Config.WindowName = "FINAL FANTASY XIV";
-        monitor.Config.MonitorType = NetworkMonitorType.WinPCap;
-        monitor.DataReceivedEventHandler += (TCPConnection connection, byte[] data) => DataReceived(connection, data);*/
+        UserManager userManager = UserManager.instance;
         monitor = new FFXIVNetworkMonitor();
         monitor.OodlePath = userManager.GetGamePath();
-        //monitor.ProcessID = 20256;
-        //Debug.Log(monitor.ProcessID);
-        //monitor.ProcessIDList.Add(20256);
-        //Debug.Log(monitor.ProcessIDList.Count);
-        //Debug.Log(string.Join(", ", monitor.ProcessIDList));
-        //Debug.Log(monitor.ProcessID);
-        //Debug.Log(monitor.LocalIP);
-        //monitor.LocalIP = System.Net.IPAddress.Parse("192.168.0.17");
-        //Debug.Log(monitor.LocalIP);
-        //Debug.Log(monitor.UseRemoteIpFilter);
-        //monitor.UseRemoteIpFilter = true;
         monitor.WindowName = "FINAL FANTASY XIV";
         monitor.MonitorType = (userManager.GetPacketType() == 2) ? NetworkMonitorType.WinPCap : NetworkMonitorType.RawSocket;
         monitor.MessageReceivedEventHandler = (TCPConnection connection, long epoch, byte[] message) => MessageReceived(connection, epoch, message);
@@ -98,11 +81,6 @@ public class Eorzea : IDisposable
     {
         threadReceivedQueue.Enqueue(message);
     }
-    /*
-    private static void DataReceived(TCPConnection connection, byte[] data)
-    {
-        threadReceivedQueue.Enqueue(data);
-    }*/
 
     public DateTime ToEorzeaTime(DateTime date)
     {
@@ -196,8 +174,6 @@ public class Eorzea : IDisposable
         if (threadReceivedQueue.Count > 0)
         {
             byte[] data = threadReceivedQueue.Dequeue();
-            //int opcode = data[18] + (data[19] * 0x100);
-            //if (data.Length == 96 && data[data.Length - 1] == 50)
             if (data.Length == 112 && data[data.Length - 8] == 50)
             {
                 Workshop.instance.SetPacketData(data);
@@ -210,22 +186,7 @@ public class Eorzea : IDisposable
                     Inventory.instance.SetItemQuantity(item - 37551, data[48] + (data[49] * 0x100));
                 else if (39224 <= item && item <= 39232)
                     Inventory.instance.SetItemQuantity(item - 39163, data[48] + (data[49] * 0x100));
-            }/*
-            else if (opcode != 358 && opcode != 387 && opcode != 520 && opcode != 4134 && opcode != 852)
-            {
-                if (data.Length - 20 >= 60)
-                {
-                    string value = "";
-                    for (int i = 20; i < data.Length; ++i)
-                    {
-                        value += data[i];
-                        if (i < data.Length - 1)
-                            value += ", ";
-                    }
-                    Debug.Log($"{opcode} : {data.Length - 20}\n{value}");
-                    //Debug.Log($"{opcode} {data.Length} : {string.Join(", ", data)}");
-                }
-            }*/
+            }
         }
     }
 
