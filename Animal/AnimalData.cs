@@ -99,14 +99,14 @@ public class AnimalData : MonoBehaviour
         if (weather >= 0)
         {
             title[num] = resourceManager.GetText(22);
-            des[num] = resourceManager.GetWeather(weather);
+            des[num] = $"<sprite={weather + resourceManager.GetProductMax() + resourceManager.GetMaterialMax()}>{resourceManager.GetWeather(weather)}";
             ++num;
         }
         title[num] = resourceManager.GetText(59);
-        des[num] = resourceManager.GetMaterialName(resourceManager.GetAnimalNormalLeaving(index));
+        des[num] = $"<sprite={resourceManager.GetAnimalNormalLeaving(index)}>{resourceManager.GetMaterialName(resourceManager.GetAnimalNormalLeaving(index))}";
         ++num;
         title[num] = resourceManager.GetText(60);
-        des[num] = resourceManager.GetMaterialName(resourceManager.GetAnimalRareLeaving(index));
+        des[num] = $"<sprite={resourceManager.GetAnimalRareLeaving(index)}>{resourceManager.GetMaterialName(resourceManager.GetAnimalRareLeaving(index))}";
         Tooltip.instance.ShowToolTip(imgIcon.sprite, resourceManager.GetAnimalName(index), title, des);
     }
 

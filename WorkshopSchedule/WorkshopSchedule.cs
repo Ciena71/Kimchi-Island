@@ -102,7 +102,15 @@ public class WorkshopSchedule : MonoBehaviour
                 });
                 scheduleProductList.ForEach((form) =>
                 {
-                    if (form.GetSupply(1) == 1)
+                    if (form.GetSupply(1) == 1 && form.GetPeak() != 2)
+                    {
+                        form.transform.SetSiblingIndex(index);
+                        ++index;
+                    }
+                });
+                scheduleProductList.ForEach((form) =>
+                {
+                    if (form.GetSupply(1) == 1 && form.GetPeak() == 2)
                     {
                         form.transform.SetSiblingIndex(index);
                         ++index;
@@ -145,7 +153,15 @@ public class WorkshopSchedule : MonoBehaviour
                 });
                 scheduleProductList.ForEach((form) =>
                 {
-                    if (form.GetSupply(1) == 1)
+                    if (form.GetSupply(1) == 1 && form.GetPeak() == 2)
+                    {
+                        form.transform.SetSiblingIndex(index);
+                        ++index;
+                    }
+                });
+                scheduleProductList.ForEach((form) =>
+                {
+                    if (form.GetSupply(1) == 1 && form.GetPeak() != 2)
                     {
                         form.transform.SetSiblingIndex(index);
                         ++index;
@@ -204,7 +220,15 @@ public class WorkshopSchedule : MonoBehaviour
                 });
                 scheduleProductList.ForEach((form) =>
                 {
-                    if (form.GetSupply(2) == 1)
+                    if (form.GetSupply(2) == 1 && form.GetPeak() != 3)
+                    {
+                        form.transform.SetSiblingIndex(index);
+                        ++index;
+                    }
+                });
+                scheduleProductList.ForEach((form) =>
+                {
+                    if (form.GetSupply(2) == 1 && form.GetPeak() == 3)
                     {
                         form.transform.SetSiblingIndex(index);
                         ++index;
@@ -247,7 +271,15 @@ public class WorkshopSchedule : MonoBehaviour
                 });
                 scheduleProductList.ForEach((form) =>
                 {
-                    if (form.GetSupply(2) == 1)
+                    if (form.GetSupply(2) == 1 && form.GetPeak() == 3)
+                    {
+                        form.transform.SetSiblingIndex(index);
+                        ++index;
+                    }
+                });
+                scheduleProductList.ForEach((form) =>
+                {
+                    if (form.GetSupply(2) == 1 && form.GetPeak() != 3)
                     {
                         form.transform.SetSiblingIndex(index);
                         ++index;
@@ -306,7 +338,15 @@ public class WorkshopSchedule : MonoBehaviour
                 });
                 scheduleProductList.ForEach((form) =>
                 {
-                    if (form.GetSupply(3) == 1)
+                    if (form.GetSupply(3) == 1 && form.GetPeak() != 4)
+                    {
+                        form.transform.SetSiblingIndex(index);
+                        ++index;
+                    }
+                });
+                scheduleProductList.ForEach((form) =>
+                {
+                    if (form.GetSupply(3) == 1 && form.GetPeak() == 4)
                     {
                         form.transform.SetSiblingIndex(index);
                         ++index;
@@ -365,7 +405,15 @@ public class WorkshopSchedule : MonoBehaviour
                 });
                 scheduleProductList.ForEach((form) =>
                 {
-                    if (form.GetSupply(3) == 1)
+                    if (form.GetSupply(3) == 1 && form.GetPeak() == 4)
+                    {
+                        form.transform.SetSiblingIndex(index);
+                        ++index;
+                    }
+                });
+                scheduleProductList.ForEach((form) =>
+                {
+                    if (form.GetSupply(3) == 1 && form.GetPeak() != 4)
                     {
                         form.transform.SetSiblingIndex(index);
                         ++index;
@@ -416,7 +464,15 @@ public class WorkshopSchedule : MonoBehaviour
                 });
                 scheduleProductList.ForEach((form) =>
                 {
-                    if (form.GetSupply(4) == 1)
+                    if (form.GetSupply(4) == 1 && form.GetPeak() != 5)
+                    {
+                        form.transform.SetSiblingIndex(index);
+                        ++index;
+                    }
+                });
+                scheduleProductList.ForEach((form) =>
+                {
+                    if (form.GetSupply(4) == 1 && form.GetPeak() == 5)
                     {
                         form.transform.SetSiblingIndex(index);
                         ++index;
@@ -475,7 +531,15 @@ public class WorkshopSchedule : MonoBehaviour
                 });
                 scheduleProductList.ForEach((form) =>
                 {
-                    if (form.GetSupply(4) == 1)
+                    if (form.GetSupply(4) == 1 && form.GetPeak() == 5)
+                    {
+                        form.transform.SetSiblingIndex(index);
+                        ++index;
+                    }
+                });
+                scheduleProductList.ForEach((form) =>
+                {
+                    if (form.GetSupply(4) == 1 && form.GetPeak() != 5)
                     {
                         form.transform.SetSiblingIndex(index);
                         ++index;
@@ -534,7 +598,15 @@ public class WorkshopSchedule : MonoBehaviour
                 });
                 scheduleProductList.ForEach((form) =>
                 {
-                    if (form.GetSupply(5) == 1)
+                    if (form.GetSupply(5) == 1 && form.GetPeak() != 6)
+                    {
+                        form.transform.SetSiblingIndex(index);
+                        ++index;
+                    }
+                });
+                scheduleProductList.ForEach((form) =>
+                {
+                    if (form.GetSupply(5) == 1 && form.GetPeak() == 6)
                     {
                         form.transform.SetSiblingIndex(index);
                         ++index;
@@ -593,7 +665,15 @@ public class WorkshopSchedule : MonoBehaviour
                 });
                 scheduleProductList.ForEach((form) =>
                 {
-                    if (form.GetSupply(5) == 1)
+                    if (form.GetSupply(5) == 1 && form.GetPeak() == 6)
+                    {
+                        form.transform.SetSiblingIndex(index);
+                        ++index;
+                    }
+                });
+                scheduleProductList.ForEach((form) =>
+                {
+                    if (form.GetSupply(5) == 1 && form.GetPeak() != 6)
                     {
                         form.transform.SetSiblingIndex(index);
                         ++index;
@@ -660,7 +740,15 @@ public class WorkshopSchedule : MonoBehaviour
                 });
                 scheduleProductList.ForEach((form) =>
                 {
-                    if (form.GetSupply(6) == 1)
+                    if (form.GetSupply(6) == 1 && form.GetPeak() != 7)
+                    {
+                        form.transform.SetSiblingIndex(index);
+                        ++index;
+                    }
+                });
+                scheduleProductList.ForEach((form) =>
+                {
+                    if (form.GetSupply(6) == 1 && form.GetPeak() == 7)
                     {
                         form.transform.SetSiblingIndex(index);
                         ++index;
@@ -719,7 +807,15 @@ public class WorkshopSchedule : MonoBehaviour
                 });
                 scheduleProductList.ForEach((form) =>
                 {
-                    if (form.GetSupply(6) == 1)
+                    if (form.GetSupply(6) == 1 && form.GetPeak() == 7)
+                    {
+                        form.transform.SetSiblingIndex(index);
+                        ++index;
+                    }
+                });
+                scheduleProductList.ForEach((form) =>
+                {
+                    if (form.GetSupply(6) == 1 && form.GetPeak() != 7)
                     {
                         form.transform.SetSiblingIndex(index);
                         ++index;

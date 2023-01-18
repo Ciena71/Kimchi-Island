@@ -13,7 +13,7 @@ public class GatherData : MonoBehaviour
     public void SetDefaultData(int _item)
     {
         item = _item;
-        imgItem.sprite = Resources.Load<Sprite>($"Sprite/Item/{_item}");
+        imgItem.sprite = Resources.Load<Sprite>($"Sprite/Material/M{_item}");
         ApplyLanguage();
         btnBG.onClick.AddListener(() =>
         {

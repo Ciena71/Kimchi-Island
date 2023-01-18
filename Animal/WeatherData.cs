@@ -17,7 +17,7 @@ public class WeatherData : MonoBehaviour
         DateTime dt = TimeZone.CurrentTimeZone.ToLocalTime(new DateTime(Convert.ToInt64(time * 10000000)).AddYears(1969));
         weather = eorzea.GetWeather(time);
         ResourceManager resourceManager = ResourceManager.instance;
-        imgWeather.sprite = Resources.Load<Sprite>($"Sprite/Weather/{weather}");
+        imgWeather.sprite = Resources.Load<Sprite>($"Sprite/Weather/W{weather}");
         textWeather.text = resourceManager.GetWeather(weather);
         textLT.text = dt.ToString("MM-dd HH:mm:ss");
         textET.text = eorzea.ToEorzeaTime(dt).ToString("HH:mm");

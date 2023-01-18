@@ -37,7 +37,7 @@ public class Eorzea : IDisposable
         textEorzeaTimeHour.text = eorzeaTime.Hour.ToString();
         textEorzeaTimeMinute.text = eorzeaTime.Minute >= 10 ? eorzeaTime.Minute.ToString() : $"0{eorzeaTime.Minute}";
         eorzeaWeather = GetWeather(DateTime.UtcNow);
-        imgWeather.sprite = Resources.Load<Sprite>($"Sprite/Weather/{eorzeaWeather}");
+        imgWeather.sprite = Resources.Load<Sprite>($"Sprite/Weather/W{eorzeaWeather}");
         textWeather.text = ResourceManager.instance.GetWeather(eorzeaWeather);
     }
 
@@ -164,7 +164,7 @@ public class Eorzea : IDisposable
                 if (newEorzeaTime.Hour % 8 == 0)
                     Animal.instance.ResetWeather();
                 eorzeaWeather = _weather;
-                imgWeather.sprite = Resources.Load<Sprite>($"Sprite/Weather/{eorzeaWeather}");
+                imgWeather.sprite = Resources.Load<Sprite>($"Sprite/Weather/W{eorzeaWeather}");
                 textWeather.text = ResourceManager.instance.GetWeather(eorzeaWeather);
             }
             eorzeaTime = newEorzeaTime;

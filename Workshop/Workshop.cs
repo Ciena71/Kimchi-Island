@@ -125,6 +125,25 @@ public class Workshop : MonoBehaviour
     ComputeBuffer gpuCalculateResultF;
     ComputeBuffer gpuCalculateResultTotal;
 
+#if UNITY_EDITOR
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.F12))
+        {
+            long now = (DateTime.UtcNow.AddDays(-1).AddHours(-9).Ticks - 637961184000000000) / 1000000000;
+            long season = now / 6048;
+            //long day = (now % 6048) / 864 + 1;
+            System.IO.DirectoryInfo path = new System.IO.DirectoryInfo($"{Environment.GetFolderPath(Environment.SpecialFolder.Desktop)}/Kimchi Island Screenshot");
+            if (!path.Exists)
+                path.Create();
+            if (cycle < 7)
+                ScreenCapture.CaptureScreenshot($"{path.FullName}/S{season}-C{cycle + 1}-{(UserManager.instance.GetNetProfit() == true ? "Net_Profit" : "Native")}.png");
+            else if (cycle == 7)
+                ScreenCapture.CaptureScreenshot($"{path.FullName}/S{season}-C5~7-{(UserManager.instance.GetNetProfit() == true ? "Net_Profit" : "Native")}.png");
+        }
+    }
+#endif
+
     void Awake()
     {
         instance = this;

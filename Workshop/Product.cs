@@ -36,7 +36,7 @@ public class Product : MonoBehaviour
     {
         index = _index;
         ResourceManager resourceManager = ResourceManager.instance;
-        imgProductIcon.sprite = Resources.Load<Sprite>($"Sprite/Product/{index}");
+        imgProductIcon.sprite = Resources.Load<Sprite>($"Sprite/Product/P{index}");
         textProductName.text = resourceManager.GetProductName(index);
         time = resourceManager.GetProductTime(index);
         textProductTime.text = time.ToString();
@@ -222,7 +222,7 @@ public class Product : MonoBehaviour
                     else
                         supply = new int[] { 0, -8, -15, 0, 0, 0, 0, supply[7], supply[8] };
                     if (_peak == -1)
-                        supply = new int[] { 0, -1, -8, 7, 0, -8, -8, supply[7], supply[8] };
+                        supply = new int[] { 0, -1, 0, 7, 0, -8, -8, supply[7], supply[8] };
                     break;
                 }
             case 4:

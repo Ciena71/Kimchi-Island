@@ -11,7 +11,7 @@ public class InventoryItem : MonoBehaviour
     public void SetDefault(int _index)
     {
         index = _index;
-        imgItem.sprite = Resources.Load<Sprite>($"Sprite/Item/{index}");
+        imgItem.sprite = Resources.Load<Sprite>($"Sprite/Material/M{index}");
         textItemQuantity.text = UserManager.instance.GetInventory(index).ToString();
     }
 

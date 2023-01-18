@@ -14,7 +14,7 @@ public class Tooltip : MonoBehaviour
     public TextMeshProUGUI textDescription;
     public GameObject[] objTag = new GameObject[6];
     public Text[] textTagTitle = new Text[6];
-    public Text[] textTagDescription = new Text[6];
+    public TextMeshProUGUI[] textTagDescription = new TextMeshProUGUI[6];
 
     RectTransform toolTipPivot;
 
@@ -42,7 +42,7 @@ public class Tooltip : MonoBehaviour
         imgIcon.sprite = _icon;
         textTitle.text = _title;
         objTitle.SetActive(true);
-        rectTooltip.sizeDelta = new Vector2(300, 105 + 49 * _tagTitle.Length);
+        rectTooltip.sizeDelta = new Vector2(350, 105 + 49 * _tagTitle.Length);
         for (int i = 0; i < _tagTitle.Length; ++i)
         {
             textTagTitle[i].text = _tagTitle[i];

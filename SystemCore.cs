@@ -231,7 +231,7 @@ public class SystemCore : MonoBehaviour
         eorzea.Update();
     }
 
-    public void SendDebugLog(string data) => UnityEngine.Debug.Log(data);
+    public void SendDebugLog(string data) => Debug.Log(data);
 
     public void ApplyLanguage()
     {
@@ -248,7 +248,7 @@ public class SystemCore : MonoBehaviour
 
     public bool AssignTopmostWindow(string WindowTitle, bool MakeTopmost)
     {
-        IntPtr hWnd = FindWindow((string)null, WindowTitle);
+        IntPtr hWnd = FindWindow(null, WindowTitle);
 
         GetWindowRect(new HandleRef(this, hWnd), out RECT rect);
 

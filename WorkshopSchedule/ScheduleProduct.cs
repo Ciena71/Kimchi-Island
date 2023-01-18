@@ -12,6 +12,7 @@ public class ScheduleProduct : MonoBehaviour
     Text[] textDay = new Text[7];
     GameObject[,] objDaySup = new GameObject[7, 2];
     int[] supply = new int[7];
+    int peak = -1;
 
     int index;
 
@@ -34,7 +35,7 @@ public class ScheduleProduct : MonoBehaviour
     {
         index = _index;
         ResourceManager resourceManager = ResourceManager.instance;
-        imgProductIcon.sprite = Resources.Load<Sprite>($"Sprite/Product/{index}");
+        imgProductIcon.sprite = Resources.Load<Sprite>($"Sprite/Product/P{index}");
         textProductName.text = resourceManager.GetProductName(index);
     }
 
@@ -49,7 +50,7 @@ public class ScheduleProduct : MonoBehaviour
         supply[5] = (int)resourceManager.GetSupplyPattern()[index]["Prediction6"];
         supply[6] = (int)resourceManager.GetSupplyPattern()[index]["Prediction7"];
         string[] pattern = resourceManager.GetSupplyPattern()[index]["Pattern"].ToString().Split(' ');
-        int peakDay;
+        int peakDay = -1;
         if (pattern.Length == 2)
         {
             if (!int.TryParse(pattern[0], out peakDay))
@@ -64,8 +65,8 @@ public class ScheduleProduct : MonoBehaviour
                     peakDay = -2;
             }
         }
-        else
-            peakDay = -1;
+        if (peakDay > 0)
+            peak = peakDay;
         bool checker = WorkshopSchedule.instance.GetDay1();
         for (int i = 0; i < 7; ++i)
         {
@@ -190,6 +191,8 @@ public class ScheduleProduct : MonoBehaviour
     }
 
     public int GetSupply(int day) => supply[day];
+
+    public int GetPeak() => peak;
 
     public void SetHighlight(int _index)
     {
