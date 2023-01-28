@@ -124,6 +124,8 @@ public class AnimalData : MonoBehaviour
 
     public DateTime GetFirstHideTime() => animalNextSpawn.GetHideTime();
 
+    public bool IsSpawned() => animalNextSpawn.IsSpawned();
+
     public void SetTime(int type)
     {
         Eorzea eorzea = Eorzea.instance;

@@ -78,6 +78,8 @@ public class AnimalNextSpawn : MonoBehaviour
 
     public DateTime GetHideTime() => hideTime;
 
+    public bool IsSpawned() => isSpawned;
+
     private void Update()
     {
         if (isSpawned)

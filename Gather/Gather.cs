@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -33,7 +34,7 @@ public class Gather : MonoBehaviour
         {
             GameObject obj = Instantiate(Resources.Load<GameObject>("Prefab/Gather/GatherNode"), transPivot);
             GatherNode node = obj.GetComponent<GatherNode>();
-            node.SetDefaultData(new Vector2(float.Parse(form["X"].ToString()), float.Parse(form["Y"].ToString())), (int)form["Node"]);
+            node.SetDefaultData(new Vector2(float.Parse(form["X"].ToString(), CultureInfo.InvariantCulture), float.Parse(form["Y"].ToString(), CultureInfo.InvariantCulture)), (int)form["Node"]);
             gatherNodeList.Add(node);
         });
         nodeList.Clear();

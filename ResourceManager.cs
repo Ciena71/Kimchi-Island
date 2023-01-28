@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -315,7 +316,7 @@ public class ResourceManager
             time = (int)animalData[index]["Time"];
             weather = (int)animalData[index]["Weather"];
             type = (int)animalData[index]["Type"];
-            pos = new Vector2(float.Parse(animalData[index]["X"].ToString()), float.Parse(animalData[index]["Y"].ToString()));
+            pos = new Vector2(float.Parse(animalData[index]["X"].ToString(), CultureInfo.InvariantCulture), float.Parse(animalData[index]["Y"].ToString(), CultureInfo.InvariantCulture));
         }
         else
         {

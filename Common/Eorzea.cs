@@ -152,13 +152,13 @@ public class Eorzea : IDisposable
                 int _weather = GetWeather(DateTime.UtcNow);
                 Animal.instance.GetAnimalData().ForEach((form) =>
                 {
-                    if (form.GetFirstSpawnTime().ToUniversalTime().Ticks <= DateTime.UtcNow.Ticks)
+                    if (!form.IsSpawned() && form.GetFirstSpawnTime().ToUniversalTime().Ticks <= DateTime.UtcNow.Ticks)
                     {
                         if (form.IsActiveAlarm())
                             SystemCore.instance.PlayAlarm();
                         form.SetTime(1);
                     }
-                    if (form.GetFirstHideTime().ToUniversalTime().Ticks <= DateTime.UtcNow.Ticks)
+                    else if (form.IsSpawned() && form.GetFirstHideTime().ToUniversalTime().Ticks <= DateTime.UtcNow.Ticks)
                         form.SetTime(2);
                 });
                 if (newEorzeaTime.Hour % 8 == 0)
