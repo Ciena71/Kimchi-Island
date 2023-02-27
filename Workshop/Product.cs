@@ -197,12 +197,12 @@ public class Product : MonoBehaviour
         }
     }
     
-    public void SetPeak(int _day, int _peak, int _popularity, int _nextPopularity)
+    public void SetPeak(int _day, int _peak, byte _popularity, byte _nextPopularity)
     {
         pattern[0] = _day;
         pattern[1] = _peak;
-        popularity[0] = (byte)_popularity;
-        popularity[1] = (byte)_nextPopularity;
+        popularity[0] = _popularity;
+        popularity[1] = _nextPopularity;
         if (_day <= 7)
         {
             switch (_day)
