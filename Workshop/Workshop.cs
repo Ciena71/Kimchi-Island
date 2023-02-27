@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -130,9 +130,11 @@ public class Workshop : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.F12))
         {
-            long now = (DateTime.UtcNow.AddDays(-1).AddHours(-9).Ticks - 637961184000000000) / 1000000000;
-            long season = now / 6048;
-            //long day = (now % 6048) / 864 + 1;
+            long now = (DateTime.UtcNow.AddDays(-1).AddHours(-8).Ticks - 637961184000000000) / 10000000;
+            long season = now / 604800;
+            /*long day = (now % 604800) / 86400 + 1;
+            long second = (now % 604800) % 86400;
+            Debug.Log($"{now} {season} {day} {second / 3600} : {(second % 3600) / 60} : {second % 60}");*/
             System.IO.DirectoryInfo path = new System.IO.DirectoryInfo($"{Environment.GetFolderPath(Environment.SpecialFolder.Desktop)}/Kimchi Island Screenshot");
             if (!path.Exists)
                 path.Create();
@@ -586,7 +588,7 @@ public class Workshop : MonoBehaviour
                         break;
                     }
                 }
-                if (count != 2 && count != 3) return;
+                if (count < 2) return;
                 SalesDataList highestResult = new SalesDataList();
                 for (int i = 0; i < 3; ++i)
                     highestResult.salesData[i] = new SalesData();
@@ -1176,38 +1178,68 @@ public class Workshop : MonoBehaviour
         copySupplyPacket = "";
         copyPopularityPacket = "";
         ResourceManager resourceManager = ResourceManager.instance;
-        for (int i = 0; i < productList.Count; ++i)
+        if (data.Length == 96)
         {
-            int value = 0;
-            if ((data[35 + i] & (1 << 6)) == (1 << 6))
-                value = 4;
-            else if ((data[35 + i] & (1 << 5) + (1 << 4)) == (1 << 5) + (1 << 4))
-                value = 3;
-            else if ((data[35 + i] & (1 << 5)) == (1 << 5))
-                value = 2;
-            else if ((data[35 + i] & (1 << 4)) == (1 << 4))
-                value = 1;
-            int demandShift = 0;
-            if ((data[35 + i] & (1 << 2)) == (1 << 2))
-                demandShift = 5;
-            else if ((data[35 + i] & (1 << 1) + (1 << 0)) == (1 << 1) + (1 << 0))
-                demandShift = 4;
-            else if ((data[35 + i] & (1 << 1)) == (1 << 1))
-                demandShift = 3;
-            else if ((data[35 + i] & (1 << 0)) == (1 << 0))
-                demandShift = 2;
-            else
-                demandShift = 1;
-            copySupplyPacket += $"{value}\t{3 - demandShift}";
-            copyPopularityPacket += $"{resourceManager.GetStatusData(data[32], i)}\t{resourceManager.GetStatusData(data[33], i)}";
-            if (i < productList.Count - 1)
+            for (int i = 0; i < 50; ++i)
             {
-                copySupplyPacket += "\n";
-                copyPopularityPacket += "\n";
+                int value = 0;
+                if ((data[35 + i] & (1 << 6)) == (1 << 6))
+                    value = 4;
+                else if ((data[35 + i] & (1 << 5) + (1 << 4)) == (1 << 5) + (1 << 4))
+                    value = 3;
+                else if ((data[35 + i] & (1 << 5)) == (1 << 5))
+                    value = 2;
+                else if ((data[35 + i] & (1 << 4)) == (1 << 4))
+                    value = 1;
+                int demandShift = 0;
+                if ((data[35 + i] & (1 << 2)) == (1 << 2))
+                    demandShift = 5;
+                else if ((data[35 + i] & (1 << 1) + (1 << 0)) == (1 << 1) + (1 << 0))
+                    demandShift = 4;
+                else if ((data[35 + i] & (1 << 1)) == (1 << 1))
+                    demandShift = 3;
+                else if ((data[35 + i] & (1 << 0)) == (1 << 0))
+                    demandShift = 2;
+                else
+                    demandShift = 1;
+                copySupplyPacket += $"{value}\t{3 - demandShift}";
+                if (i < 49)
+                    copySupplyPacket += "\n";
             }
         }
+        else if (data.Length == 112)
+        {
+            for (int i = 0; i < productList.Count; ++i)
+            {
+                int value = 0;
+                if ((data[35 + i] & (1 << 6)) == (1 << 6))
+                    value = 4;
+                else if ((data[35 + i] & (1 << 5) + (1 << 4)) == (1 << 5) + (1 << 4))
+                    value = 3;
+                else if ((data[35 + i] & (1 << 5)) == (1 << 5))
+                    value = 2;
+                else if ((data[35 + i] & (1 << 4)) == (1 << 4))
+                    value = 1;
+                int demandShift = 0;
+                if ((data[35 + i] & (1 << 2)) == (1 << 2))
+                    demandShift = 5;
+                else if ((data[35 + i] & (1 << 1) + (1 << 0)) == (1 << 1) + (1 << 0))
+                    demandShift = 4;
+                else if ((data[35 + i] & (1 << 1)) == (1 << 1))
+                    demandShift = 3;
+                else if ((data[35 + i] & (1 << 0)) == (1 << 0))
+                    demandShift = 2;
+                else
+                    demandShift = 1;
+                copySupplyPacket += $"{value}\t{3 - demandShift}";
+                if (i < productList.Count - 1)
+                    copySupplyPacket += "\n";
+            }
+        }
+        copyPopularityPacket = $"{data[32]}\t{data[33]}";
 #if UNITY_EDITOR
         Debug.Log(copySupplyPacket + "\n");
+        SupplyPacketDataCopy();
         Debug.Log(copyPopularityPacket + "\n");
 #endif
     }
@@ -3887,26 +3919,26 @@ public class Workshop : MonoBehaviour
         {
             string[] data = resourceManager.GetSupplyPattern()[index]["Pattern"].ToString().Split(' ');
             int[] pop = { 0, 0 };
-            int.TryParse(resourceManager.GetSupplyPattern()[index]["Popularity"].ToString(), out pop[0]);
-            int.TryParse(resourceManager.GetSupplyPattern()[index]["Next Popularity"].ToString(), out pop[1]);
+            int.TryParse(resourceManager.GetSupplyPattern()[0]["Popularity"].ToString(), out pop[0]);
+            int.TryParse(resourceManager.GetSupplyPattern()[0]["Next Popularity"].ToString(), out pop[1]);
             if (data.Length == 2)
             {
                 if (data[0] != "Cycle")
-                    form.SetPeak(int.Parse(data[0]), data[1] == "Strong" ? 1 : data[1] == "Weak" ? 2 : 0, pop[0], pop[1]);
+                    form.SetPeak(int.Parse(data[0]), data[1] == "Strong" ? 1 : data[1] == "Weak" ? 2 : 0, resourceManager.GetStatusData(pop[0],form.GetIndex()), resourceManager.GetStatusData(pop[1], form.GetIndex()));
                 else
                 {
                     if (data[1] == "4/5")
-                        form.SetPeak(4, 0, pop[0], pop[1]);
+                        form.SetPeak(4, 0, resourceManager.GetStatusData(pop[0], form.GetIndex()), resourceManager.GetStatusData(pop[1], form.GetIndex()));
                     else if (data[1] == "5")
-                        form.SetPeak(5, 0, pop[0], pop[1]);
+                        form.SetPeak(5, 0, resourceManager.GetStatusData(pop[0], form.GetIndex()), resourceManager.GetStatusData(pop[1], form.GetIndex()));
                     else if (data[1] == "6/7")
-                        form.SetPeak(6, 0, pop[0], pop[1]);
+                        form.SetPeak(6, 0, resourceManager.GetStatusData(pop[0], form.GetIndex()), resourceManager.GetStatusData(pop[1], form.GetIndex()));
                     else if (data[1] == "3/6/7")
-                        form.SetPeak(3, -1, pop[0], pop[1]);
+                        form.SetPeak(3, -1, resourceManager.GetStatusData(pop[0], form.GetIndex()), resourceManager.GetStatusData(pop[1], form.GetIndex()));
                 }
             }
             else
-                form.SetPeak(0, 0, pop[0], pop[1]);
+                form.SetPeak(0, 0, resourceManager.GetStatusData(pop[0], form.GetIndex()), resourceManager.GetStatusData(pop[1], form.GetIndex()));
             ++index;
         });
         UserManager userManager = UserManager.instance;
