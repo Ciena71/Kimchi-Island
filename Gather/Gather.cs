@@ -22,18 +22,16 @@ public class Gather : MonoBehaviour
         List<Dictionary<string, object>> gatherList = CSVReader.Read("CSV/Gather", true);
         gatherList.ForEach((form) =>
         {
-            GameObject obj = Instantiate(Resources.Load<GameObject>("Prefab/Gather/GatherData"), scrollGather.content);
-            GatherData node = obj.GetComponent<GatherData>();
-            node.SetDefaultData((int)form["Item"]);
-            gatherDataList.Add(node);
+            GatherData data = Instantiate(Resources.Load<GatherData>("Prefab/Gather/GatherData"), scrollGather.content);
+            data.SetDefaultData((int)form["Item"]);
+            gatherDataList.Add(data);
         });
         gatherList.Clear();
         gatherList = null;
         List<Dictionary<string, object>> nodeList = CSVReader.Read("CSV/GatherNodeList", true);
         nodeList.ForEach((form) =>
         {
-            GameObject obj = Instantiate(Resources.Load<GameObject>("Prefab/Gather/GatherNode"), transPivot);
-            GatherNode node = obj.GetComponent<GatherNode>();
+            GatherNode node = Instantiate(Resources.Load<GatherNode>("Prefab/Gather/GatherNode"), transPivot);
             node.SetDefaultData(new Vector2(float.Parse(form["X"].ToString(), CultureInfo.InvariantCulture), float.Parse(form["Y"].ToString(), CultureInfo.InvariantCulture)), (int)form["Node"]);
             gatherNodeList.Add(node);
         });
@@ -46,7 +44,7 @@ public class Gather : MonoBehaviour
     {
         if (item != _item)
         {
-            if(item != -1)
+            if (item != -1)
             {
                 gatherDataList.ForEach((form) =>
                 {

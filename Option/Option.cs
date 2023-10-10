@@ -1,7 +1,8 @@
+using SimpleFileBrowser;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using SimpleFileBrowser;
 
 public class Option : MonoBehaviour
 {
@@ -46,9 +47,14 @@ public class Option : MonoBehaviour
     public Button btnPopularityCopy;
     public Text textPopularityCopy;
     public Dropdown dropdownPacket;
+    public Dropdown dropdownOodle;
+    public Toggle toggleDeucalion;
+    public Dropdown dropdownProcessId;
     public Text textPath;
     public Button btnPath;
     public Text textGamePath;
+    public Text textContribute;
+    public Toggle toggleContribute;
 
     void Awake()
     {
@@ -127,6 +133,58 @@ public class Option : MonoBehaviour
         {
             userManager.SetPacketType(value);
         });
+        switch (userManager.GetOodle())
+        {
+        case Machina.FFXIV.Oodle.OodleImplementation.FfxivTcp:
+            {
+                dropdownOodle.value = 0;
+                break;
+            }
+        case Machina.FFXIV.Oodle.OodleImplementation.FfxivUdp:
+            {
+                dropdownOodle.value = 1;
+                break;
+            }
+        case Machina.FFXIV.Oodle.OodleImplementation.KoreanFfxivUdp:
+            {
+                dropdownOodle.value = 2;
+                break;
+            }
+        }
+        dropdownOodle.onValueChanged.AddListener((value) =>
+        {
+            switch (value)
+            {
+            case 0:
+                {
+                    userManager.SetOodle(Machina.FFXIV.Oodle.OodleImplementation.FfxivTcp);
+                    break;
+                }
+            case 1:
+                {
+                    userManager.SetOodle(Machina.FFXIV.Oodle.OodleImplementation.FfxivUdp);
+                    break;
+                }
+            case 2:
+                {
+                    userManager.SetOodle(Machina.FFXIV.Oodle.OodleImplementation.KoreanFfxivUdp);
+                    break;
+                }
+            }
+        });
+        toggleDeucalion.isOn = userManager.GetDeucalion();
+        toggleDeucalion.onValueChanged.AddListener((value) =>
+        {
+            userManager.SetDeucalion(value);
+        });/*
+        List<string> optionList = new List<string>();
+        System.Diagnostics.Process[] process = System.Diagnostics.Process.GetProcessesByName("ffxiv_dx11");
+        if (process.Length > 0)
+        {
+            for (int i = 0; i < process.Length; ++i)
+                optionList.Add(process[i].Id.ToString());
+            dropdownProcessId.AddOptions(optionList);
+        }*/
         toggleAlwaysOnTop.isOn = userManager.GetAlwaysOnTop();
         toggleAlwaysOnTop.onValueChanged.AddListener((value) =>
         {
@@ -163,7 +221,15 @@ public class Option : MonoBehaviour
         btnPopularityCopy.onClick.AddListener(() => Workshop.instance.PopularityPacketDataCopy());
         FileBrowser.SetFilters(true, new FileBrowser.Filter(".exe file", ".exe"));
         btnPath.onClick.AddListener(() => StartCoroutine(FindPath()));
+        toggleContribute.isOn = userManager.GetContribute();
+        toggleContribute.onValueChanged.AddListener((value) =>
+        {
+            userManager.SetContribute(value);
+            if (value)
+                SpreadSheetData.instance.Login();
+        });
         textGamePath.text = userManager.GetGamePath();
+        UpdateProcessID(Eorzea.instance.GetProcessIdList());
         ApplyLanguage();
     }
 
@@ -184,6 +250,20 @@ public class Option : MonoBehaviour
                 }
             }
         }
+    }
+
+    public void UpdateProcessID(List<int> idList)
+    {
+        dropdownProcessId.ClearOptions();
+        List<string> optionList = new List<string>();
+        idList.ForEach((form) =>
+        {
+            optionList.Add($"{form}");
+        });
+        dropdownProcessId.AddOptions(optionList);
+        if (idList.Count > 0)
+            dropdownProcessId.captionText.text = idList[0].ToString();
+        //optionList.Clear();
     }
 
     public void ApplyLanguage()
@@ -208,5 +288,6 @@ public class Option : MonoBehaviour
         textSupplyCopy.text = $"{resourceManager.GetText(12)} {resourceManager.GetText(45)}";
         textPopularityCopy.text = $"{resourceManager.GetText(11)} {resourceManager.GetText(45)}";
         textPath.text = resourceManager.GetText(48);
+        textContribute.text = resourceManager.GetText(66);
     }
 }

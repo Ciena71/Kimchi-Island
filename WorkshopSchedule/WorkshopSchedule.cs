@@ -852,7 +852,7 @@ public class WorkshopSchedule : MonoBehaviour
 
     private void OnEnable()
     {
-        ResourceManager.instance.UpdateSupplyPattern();
+        //ResourceManager.instance.UpdateSupplyPattern();
     }
 
     public void UpdateSupplyPattern()

@@ -31,28 +31,43 @@ public class SalesList : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
         entry.eventID = EventTriggerType.PointerEnter;
         entry.callback.AddListener((data) =>
         {
-            if (salesData.Count == 1)
+            if (salesData != null && salesData.Count == 1)
             {
-                if (salesData[0].product != null && salesData[0].productSize > 0)
+                if (salesData[0].product != null && salesData[0].product.Length > 0)
                 {
                     ResourceManager resourceManager = ResourceManager.instance;
                     Dictionary<int, int> quantity = new Dictionary<int, int>();
-                    for (int i = 0; i < salesData[0].productSize; ++i)
+                    for (int i = 0; i < salesData[0].product.Length; ++i)
                     {
                         ProductMaterials mats = resourceManager.GetProductMaterials(salesData[0].product[i]);
                         for (int j = 0; j < mats.index.Length; ++j)
                         {
                             if (!quantity.ContainsKey(mats.index[j]))
-                                quantity.Add(mats.index[j], mats.quantity[j]);
+                                quantity.Add(mats.index[j], mats.quantity[j] * (userManager.GetWorkshopActive() > 3 ? 3 : userManager.GetWorkshopActive()));
                             else
-                                quantity[mats.index[j]] += mats.quantity[j];
+                                quantity[mats.index[j]] += mats.quantity[j] * (userManager.GetWorkshopActive() > 3 ? 3 : userManager.GetWorkshopActive());
                         }
                         mats = null;
+                    }
+                    if (salesData[0].product4 != null && salesData[0].product4.Length > 0)
+                    {
+                        for (int i = 0; i < salesData[0].product4.Length; ++i)
+                        {
+                            ProductMaterials mats = resourceManager.GetProductMaterials(salesData[0].product4[i]);
+                            for (int j = 0; j < mats.index.Length; ++j)
+                            {
+                                if (!quantity.ContainsKey(mats.index[j]))
+                                    quantity.Add(mats.index[j], mats.quantity[j]);
+                                else
+                                    quantity[mats.index[j]] += mats.quantity[j];
+                            }
+                            mats = null;
+                        }
                     }
                     string text = "";
                     foreach (KeyValuePair<int, int> kv in quantity)
                     {
-                        int value = kv.Value * userManager.GetWorkshopActive() - userManager.GetInventory(kv.Key);
+                        int value = kv.Value - userManager.GetInventory(kv.Key);
                         if (value < 0)
                             value = 0;
                         text += $"<sprite={kv.Key}>{resourceManager.GetMaterialName(kv.Key)} : {value}\n";

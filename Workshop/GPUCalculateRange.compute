@@ -1,0 +1,118 @@
+#pragma kernel CSMain
+
+uint grooveNow;
+uint grooveMax;
+uint workshopActive;
+float workshopRank;
+
+StructuredBuffer<uint> value;
+StructuredBuffer<int> supply;
+StructuredBuffer<float> popularity;
+StructuredBuffer<int> ItemA;
+StructuredBuffer<int> ItemB;
+StructuredBuffer<int> ItemC;
+StructuredBuffer<int> ItemD;
+StructuredBuffer<int> ItemE;
+StructuredBuffer<int> ItemF;
+
+RWStructuredBuffer<uint> ResultA;
+RWStructuredBuffer<uint> ResultB;
+RWStructuredBuffer<uint> ResultC;
+RWStructuredBuffer<uint> ResultD;
+RWStructuredBuffer<uint> ResultE;
+RWStructuredBuffer<uint> ResultF;
+RWStructuredBuffer<uint> ResultTotal;
+
+float GetSupplyValue(int _supply)
+{
+    if (_supply >= 15)
+        return 0.6;
+    if (_supply >= 8)
+        return 0.8;
+    if (_supply >= 0)
+        return 1;
+    if (_supply >= -8)
+        return 1.3;
+    return 1.6;
+}
+
+uint GetProductValue(uint _index, uint _step, uint _groove, uint _stack)
+{
+    uint nowGroove = (_groove + workshopActive * _step);
+    if (nowGroove > grooveMax)
+        nowGroove = grooveMax;
+    return (_step > 0 ? 2 : 1) * 
+        floor(popularity[_index] *
+        GetSupplyValue(supply[_index] + _stack) * 
+        floor(value[_index] * workshopRank * (1 + nowGroove / 100.0)));
+}
+
+[numthreads(1024,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if (ItemA[id.x] >= 0)
+    {
+        ResultA[id.x] = GetProductValue(ItemA[id.x], 0, grooveNow, 0);
+        uint resultSum = ResultA[id.x];
+        ResultB[id.x] = GetProductValue(ItemB[id.x], 1, grooveNow, 0);
+        resultSum += ResultB[id.x];
+        uint stack = 0;
+        if(ItemA[id.x] == ItemC[id.x])
+            stack = workshopActive;
+        ResultC[id.x] = GetProductValue(ItemC[id.x], 2, grooveNow, stack);
+        resultSum += ResultC[id.x];
+        if (ItemD[id.x] >= 0)
+        {
+            stack = 0;
+            if(ItemA[id.x] == ItemD[id.x])
+                stack = workshopActive;
+            if(ItemB[id.x] == ItemD[id.x])
+                stack += 2 * workshopActive;
+            ResultD[id.x] = GetProductValue(ItemD[id.x], 3, grooveNow, stack);
+            resultSum += ResultD[id.x];
+        }
+        else
+            ResultD[id.x] = 0;
+        if (ItemE[id.x] >= 0)
+        {
+            stack = 0;
+            if(ItemA[id.x] == ItemE[id.x])
+                stack = workshopActive;
+            if(ItemB[id.x] == ItemE[id.x])
+                stack += 2 * workshopActive;
+            if(ItemC[id.x] == ItemE[id.x])
+                stack += 2 * workshopActive;
+            ResultE[id.x] = GetProductValue(ItemE[id.x], 4, grooveNow, stack);
+            resultSum += ResultE[id.x];
+        }
+        else
+            ResultE[id.x] = 0;
+        if (ItemF[id.x] >= 0)
+        {
+            stack = 0;
+            if(ItemA[id.x] == ItemF[id.x])
+                stack = workshopActive;
+            if(ItemB[id.x] == ItemF[id.x])
+                stack += 2 * workshopActive;
+            if(ItemC[id.x] == ItemF[id.x])
+                stack += 2 * workshopActive;
+            if(ItemD[id.x] == ItemF[id.x])
+                stack += 2 * workshopActive;
+            ResultF[id.x] = GetProductValue(ItemF[id.x], 5, grooveNow, stack);
+            resultSum += ResultF[id.x];
+        }
+        else
+            ResultF[id.x] = 0;
+        ResultTotal[id.x] = resultSum * workshopActive;
+    }
+    else
+    {
+        ResultA[id.x] = 0;
+        ResultB[id.x] = 0;
+        ResultC[id.x] = 0;
+        ResultD[id.x] = 0;
+        ResultE[id.x] = 0;
+        ResultF[id.x] = 0;
+        ResultTotal[id.x] = 0;
+    }
+}

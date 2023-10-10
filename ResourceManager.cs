@@ -1,10 +1,10 @@
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.Networking;
-
 
 public class ResourceManager
 {
@@ -25,7 +25,11 @@ public class ResourceManager
     List<Dictionary<string, object>> materialData;
     List<Dictionary<string, object>> gatherNodeData;
     List<Dictionary<string, object>> urlData;
-    
+
+    List<Sprite> mapSprite = new List<Sprite>();
+
+    const string API_URL = "http://worldtimeapi.org/api/ip";
+
     public ResourceManager()
     {
         instance = this;
@@ -42,6 +46,8 @@ public class ResourceManager
         materialData = CSVReader.Read("CSV/Material", true);
         gatherNodeData = CSVReader.Read("CSV/GatherNode", true);
         urlData = CSVReader.Read("CSV/URL", true);
+        for (int i = 0; i < 2; ++i)
+            mapSprite.Add(Resources.Load<Sprite>($"Sprite/Map{i}"));
         UpdateVersion();
     }
 
@@ -150,10 +156,22 @@ public class ResourceManager
         ProductMaterials mat = new ProductMaterials();
         if (int.TryParse(productData[product]["Material 3"].ToString(), out int index))
         {
-            mat.index = new int[3];
-            mat.quantity = new int[3];
-            mat.index[2] = index;
-            mat.quantity[2] = (int)productData[product]["Material Required 3"];
+            if (int.TryParse(productData[product]["Material 4"].ToString(), out int index1))
+            {
+                mat.index = new int[4];
+                mat.quantity = new int[4];
+                mat.index[2] = index;
+                mat.quantity[2] = (int)productData[product]["Material Required 3"];
+                mat.index[3] = index1;
+                mat.quantity[3] = (int)productData[product]["Material Required 4"];
+            }
+            else
+            {
+                mat.index = new int[3];
+                mat.quantity = new int[3];
+                mat.index[2] = index;
+                mat.quantity[2] = (int)productData[product]["Material Required 3"];
+            }
         }
         else
         {
@@ -260,9 +278,19 @@ public class ResourceManager
             item3 = -1;
     }
 
+    public bool IsGatherNodeGround(int index)
+    {
+        if ((int)gatherNodeData[index]["Ground"] == 1)
+            return true;
+        else
+            return false;
+    }
+
     public string GetGatherNodeName(int index) => gatherNodeData[index][UserManager.instance.GetDataLanguage().ToString()].ToString();
 
     public string GetURL(int index) => urlData[index]["URL"].ToString();
+
+    public Sprite GetMapSprite(int index) => mapSprite[index];
 
     IEnumerator RequestSheetData()
     {
@@ -337,4 +365,46 @@ public class ResourceManager
     }
 
     public List<Dictionary<string, object>> GetSupplyPattern() => supplyPattern;
+
+    public void GetRealDate(byte[] data, Action<byte[], DateTime> action) => SystemCore.instance.StartCoroutine(GetRealDateTimeFromAPI(data, action));
+
+    IEnumerator GetRealDateTimeFromAPI(byte[] form, Action<byte[], DateTime> action)
+    {
+        UnityWebRequest data = UnityWebRequest.Get(API_URL);
+        yield return data.SendWebRequest();
+        if (data.result == UnityWebRequest.Result.ConnectionError)
+            yield break;
+        TimeData timeData = JsonUtility.FromJson<TimeData>(data.downloadHandler.text);
+        action.Invoke(form, ParseDateTime(timeData.utc_datetime));
+    }
+
+    DateTime ParseDateTime(string datetime)
+    {
+        //match 0000-00-00
+        string date = Regex.Match(datetime, @"^\d{4}-\d{2}-\d{2}").Value;
+
+        //match 00:00:00
+        string time = Regex.Match(datetime, @"\d{2}:\d{2}:\d{2}").Value;
+
+        return DateTime.Parse(string.Format("{0} {1}", date, time));
+    }
+}
+
+public class TimeData
+{
+    public string abbreviation;
+    public string client_ip;
+    public string datetime;
+    public int day_of_week;
+    public int day_of_year;
+    public bool dst;
+    public string dst_from;
+    public int dst_offset;
+    public string dst_until;
+    public int raw_offset;
+    public string timezone;
+    public int unixtime;
+    public string utc_datetime;
+    public string utc_offset;
+    public int week_number;
 }

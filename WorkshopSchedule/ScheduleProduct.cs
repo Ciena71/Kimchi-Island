@@ -148,7 +148,7 @@ public class ScheduleProduct : MonoBehaviour
         textProductName.text = resourceManager.GetProductName(index);
         bool checker = WorkshopSchedule.instance.GetDay1();
         if (checker)
-            textDay[0].text = resourceManager.GetStatusName(Workshop.instance.GetProductList()[index].GetPopularity(0));
+            textDay[0].text = resourceManager.GetStatusName(Workshop.instance.GetProductList[index].GetPopularity(0));
         for (int i = 0; i < 7; ++i)
         {
             if (i != 0 || !checker)
@@ -161,7 +161,7 @@ public class ScheduleProduct : MonoBehaviour
         if (check)
         {
             ResourceManager resourceManager = ResourceManager.instance;
-            int status = Workshop.instance.GetProductList()[index].GetPopularity(0);
+            int status = Workshop.instance.GetProductList[index].GetPopularity(0);
             textDay[0].text = resourceManager.GetStatusName(status);
             imgDay1.rectTransform.sizeDelta = new Vector2(50, 50);
             objDaySup[0, 1].SetActive(false);

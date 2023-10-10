@@ -51,11 +51,11 @@ public class SystemCore : MonoBehaviour
             Right = right;
             Bottom = bottom;
         }
-
+        /*
         public RECT(System.Drawing.Rectangle r)
             : this(r.Left, r.Top, r.Right, r.Bottom)
         {
-        }
+        }*/
 
         public int X
         {
@@ -106,7 +106,7 @@ public class SystemCore : MonoBehaviour
                 Right = value + Left;
             }
         }
-
+        /*
         public static implicit operator System.Drawing.Rectangle(RECT r)
         {
             return new System.Drawing.Rectangle(r.Left, r.Top, r.Width, r.Height);
@@ -115,7 +115,7 @@ public class SystemCore : MonoBehaviour
         public static implicit operator RECT(System.Drawing.Rectangle r)
         {
             return new RECT(r);
-        }
+        }*/
     }
 
     [DllImport("user32.dll", SetLastError = true)]
@@ -131,11 +131,12 @@ public class SystemCore : MonoBehaviour
 
 #endregion
 
-    void Start()
+    void Awake()
     {
         instance = this;
         ResourceManager resourceManager = new ResourceManager();
         UserManager userManager = new UserManager();
+        new SpreadSheetData();
         eorzea = new Eorzea(textEorzeaTimeHour, textEorzeaTimeMinute, imgWeather, textWeather);
         objWorkshop = Instantiate(Resources.Load<GameObject>("Prefab/Workshop/WorkshopList"), transform.GetChild(0));
         objWorkshopSchedule = Instantiate(Resources.Load<GameObject>("Prefab/WorkshopSchedule/WorkshopSchedule"), transform.GetChild(1));
@@ -178,6 +179,11 @@ public class SystemCore : MonoBehaviour
         });
         SetAlarmVolume(userManager.GetAlarmVolume());
         SetAlarm(userManager.GetAlarm());
+    }
+
+    private void OnApplicationQuit()
+    {
+        eorzea.Dispose();
     }
 
     private void OnDestroy()
@@ -228,6 +234,11 @@ public class SystemCore : MonoBehaviour
 
     private void Update()
     {
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            System.Diagnostics.Process test = System.Diagnostics.Process.GetProcessById(30892);
+                Debug.Log($"{test.MachineName} {test.ProcessName} {test.Id}");
+        }
         eorzea.Update();
     }
 

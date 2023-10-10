@@ -6,7 +6,11 @@ public class UserManager
 {
     public static UserManager instance;
 
-    string GetSaveFilePath() => Path.Combine(Application.persistentDataPath, "UserSave.hxd");
+    string dataPath = Application.persistentDataPath;
+
+    public string GetFilePath() => dataPath;
+
+    string GetSaveFilePath() => Path.Combine(dataPath, "UserSave.hxd");
 
     UserData userData;
 
@@ -52,17 +56,6 @@ public class UserManager
         SaveData();
     }
 
-    public int GetPacketType() => userData.packet;
-    public void SetPacketType(int type)
-    {
-        Eorzea eorzea = Eorzea.instance;
-        if (userData.packet > 0)
-            eorzea.StopPacketCapture();
-        userData.packet = type;
-        eorzea.SettingPacketCapture();
-        SaveData();
-    }
-
     public bool GetAlwaysOnTop() => userData.alwaysOnTop;
     public void SetAlwaysOnTop(bool type)
     {
@@ -92,6 +85,7 @@ public class UserManager
     {
         userData.rank = rank;
         SaveData();
+        Workshop.instance.UpdateEnableList();
     }
 
     public int GetCurrentGroove() => userData.grooveCurrent;
@@ -129,20 +123,14 @@ public class UserManager
         SaveData();
     }
 
-    public bool GetGroovePriority() => userData.groovePriority;
-    public void SetGroovePriority(bool value)
-    {
-        userData.groovePriority = value;
-        SaveData();
-    }
-
     public bool GetProductBlacklist(int index) => !userData.productBlacklistNew[index];
     public void SetProductBlacklist(int index, bool value)
     {
-        if(value != GetProductBlacklist(index))
+        if (value != GetProductBlacklist(index))
         {
             userData.productBlacklistNew[index] = !value;
             SaveData();
+            Workshop.instance.UpdateEnableList();
         }
     }
 
@@ -174,6 +162,37 @@ public class UserManager
             userData.inventory[index] = value;
             SaveData();
         }
+    }
+
+    public int GetPacketType() => userData.packet;
+    public void SetPacketType(int type)
+    {
+        Eorzea eorzea = Eorzea.instance;
+        if (userData.packet > 0)
+            eorzea.StopPacketCapture();
+        userData.packet = type;
+        eorzea.SettingPacketCapture();
+        SaveData();
+    }
+
+    public Machina.FFXIV.Oodle.OodleImplementation GetOodle() => userData.oodle;
+    public void SetOodle(Machina.FFXIV.Oodle.OodleImplementation oodle)
+    {
+        Eorzea eorzea = Eorzea.instance;
+        eorzea.StopPacketCapture();
+        userData.oodle = oodle;
+        eorzea.SettingPacketCapture();
+        SaveData();
+    }
+
+    public bool GetDeucalion() => userData.deucalion;
+    public void SetDeucalion(bool value)
+    {
+        Eorzea eorzea = Eorzea.instance;
+        eorzea.StopPacketCapture();
+        userData.deucalion = value;
+        eorzea.SettingPacketCapture();
+        SaveData();
     }
 
     public string GetGamePath() => userData.gamePath;
@@ -214,20 +233,32 @@ public class UserManager
         SaveData();
     }
 
+    public bool GetContribute() => userData.contribute;
+    public void SetContribute(bool _value)
+    {
+        userData.contribute = _value;
+        SaveData();
+    }
+
     void LoadData()
     {
         if (IsFileExist())
         {
             userData = JsonUtility.FromJson<UserData>(File.ReadAllText(GetSaveFilePath()));
             bool changed = false;
-            if (userData.productBlacklistNew.Length != 60)
+            if (userData.productBlacklistNew.Length != 81)
             {
-                Array.Resize(ref userData.productBlacklistNew, 60);
+                Array.Resize(ref userData.productBlacklistNew, 81);
                 changed = true;
             }
-            if (userData.inventory.Length != 70)
+            if (userData.inventory.Length != 99)
             {
-                Array.Resize(ref userData.inventory, 70);
+                Array.Resize(ref userData.inventory, 99);
+                changed = true;
+            }
+            if (userData.oodle == 0)
+            {
+                userData.oodle = Machina.FFXIV.Oodle.OodleImplementation.FfxivTcp;
                 changed = true;
             }
             if (changed)
@@ -240,7 +271,7 @@ public class UserManager
             if (userData.language != SystemLanguage.Korean && userData.language != SystemLanguage.English && userData.language != SystemLanguage.Japanese)
                 userData.language = SystemLanguage.English;
             userData.dataLanguage = Application.systemLanguage;
-            if (userData.dataLanguage != SystemLanguage.English && userData.dataLanguage != SystemLanguage.Japanese)
+            if (userData.dataLanguage != SystemLanguage.Korean && userData.dataLanguage != SystemLanguage.English && userData.dataLanguage != SystemLanguage.Japanese)
                 userData.dataLanguage = SystemLanguage.English;
         }
     }
@@ -251,7 +282,7 @@ public class UserManager
 
     public void UpdateWeek()
     {
-        long week = DateTime.UtcNow.AddDays(-1).AddHours(-9).Ticks / 6048000000000 - 105483;
+        long week = DateTime.UtcNow.AddDays(-1).AddHours(-8).Ticks / 6048000000000 - 105483;
         if (userData.dataWeek != week)
         {
             userData.salesData = new SalesData[7];
